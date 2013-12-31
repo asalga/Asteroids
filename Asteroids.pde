@@ -1,9 +1,5 @@
 /*
-  @pjs preload="data/astroid.png";
-*/
-
-/*
-  @pjs font="data/VectorBattle.ttf";
+  @pjs preload="data/asteroid.png";
 */
  
 // A clone of Asteroids
