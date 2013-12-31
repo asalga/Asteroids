@@ -1,5 +1,5 @@
 /*
-  @pjs preload="data/asteroid.png";
+  @pjs globalKeyEvents="true"; preload="data/asteroid.png";
 */
  
 // A clone of Asteroids
@@ -35,6 +35,7 @@ int score = 0;
 // keyboard stuff
 final int KEY_SPACE = 32;
 final int KEY_D = 68;
+
 boolean leftKeyDown = false;
 boolean rightKeyDown = false;
 boolean upKeyDown = false;
@@ -262,7 +263,7 @@ void keyPressed() {
     downKeyDown = true;
   }
   
-  if (keyCode == SHIFT) {
+  if (keyCode == SHIFT || keyCode == KEY_SPACE) {
     ship.fire();
   }
   
