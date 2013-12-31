@@ -10,6 +10,7 @@ import ddf.minim.*;
 final int ASTEROID_POINTS = 100;
 
 final float BULLET_SPEED = 200.0f;
+final boolean GOD_MODE = false;
 
 PFont font;
 
@@ -157,8 +158,8 @@ void update(){
   float deltaTime = timer.getDeltaSec();
     
   if(ship.isDestroyed() || numAsteroidsAlive == 0){
-    //endGame();
-    //return;
+    endGame();
+    return;
   }
   
   for(int i = 0; i < asteroids.size(); i++){
@@ -210,12 +211,18 @@ void testCollisions(){
     BoundingCircle ShipBounds = ship.getBoundingCircle();
     
     if(testCircleCollision(asteroidBounds, ShipBounds)){
-      //endGame();
+      endGame();
     }
   }
 }
 
+/*
+
+*/
 void endGame(){
+  if(GOD_MODE == true){
+    return;
+  }
   gameOver = true;
 }
 
