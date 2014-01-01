@@ -23,6 +23,7 @@ ArrayList <ParticleSystem> particleSystems;
 Timer timer;
 
 boolean gameOver = false;
+
 boolean debugOn = false;
 
 final int NUM_ASTEROIDS = 25;
@@ -212,6 +213,7 @@ void testCollisions(){
     BoundingCircle ShipBounds = ship.getBoundingCircle();
     
     if(testCircleCollision(asteroidBounds, ShipBounds)){
+      ship.destroy();
       endGame();
     }
   }

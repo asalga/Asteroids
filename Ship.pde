@@ -27,6 +27,10 @@ public class Ship extends Sprite{
     Prevent the player from firing too frequently.
   */
   public void fire(){
+    if(isDestroyed()){
+      return;
+    }
+
     if(shootingTimer.getTotalTime() > 0.25f){
       shootingTimer.reset();
       soundManager.playSound("shoot");
