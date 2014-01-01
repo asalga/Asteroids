@@ -1,26 +1,34 @@
 /*
-    User controls the ship with their keyboard
+    User controls the ship with their keyboard.
 */
 public class Ship extends Sprite{
   
-  private float accel;  
+  private float accel;
   private final float ROT_SPEED = 1.0f;
   private Timer thrustTimer;
+  private Timer shootingTimer;
   
   public Ship(){    
     rotation = 0.0f;
     position = new PVector(width/2, height/2);
     velocity = new PVector();
     thrustTimer = new Timer();
+    shootingTimer = new Timer();
     
     bounds = new BoundingCircle();
     bounds.radius = 20/2.0;
     bounds.position = copyVector(position);
   }
   
+  /*
+    Prevent the player from firing too frequently.
+  */
   public void fire(){
-    soundManager.playSound("shoot");
-    createBullet(copyVector(position), new PVector(cos(rotation) * BULLET_SPEED, sin(rotation) * BULLET_SPEED));
+    if(shootingTimer.getTotalTime() > 0.25f){
+      shootingTimer.reset();
+      soundManager.playSound("shoot");
+      createBullet(copyVector(position), new PVector(cos(rotation) * BULLET_SPEED, sin(rotation) * BULLET_SPEED));
+    }
   }
   
   public void draw(){
@@ -65,6 +73,8 @@ public class Ship extends Sprite{
   }
   
   public void update(float deltaTime){
+    shootingTimer.tick();
+
     if(leftKeyDown && upKeyDown){
       rotation -= ROT_SPEED * deltaTime;
     }
