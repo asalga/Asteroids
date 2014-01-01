@@ -56,7 +56,7 @@ public class Ship extends Sprite{
 
     // We need to show the thruster if the user is pressing down
     // for a brief period, then hide it to make it look animated.
-    if(thrustTimer.getTotalTime() < 0.05 && upKeyDown){
+    if(thrustTimer.getTotalTime() < 0.05 && Keyboard.isKeyDown(KEY_UP)){
       // thruster
       line(-6, 3, -12, 0);
       line(-6, -3, -12, 0);
@@ -82,20 +82,20 @@ public class Ship extends Sprite{
   public void update(float deltaTime){
     shootingTimer.tick();
 
-    if(leftKeyDown && (upKeyDown || ALLOW_ROT_IN_PLACE)){
+    if(Keyboard.isKeyDown(KEY_LEFT) && ((Keyboard.isKeyDown(KEY_UP) || ALLOW_ROT_IN_PLACE))){
       rotation -= ROT_SPEED * deltaTime;
     }
     
-    if(rightKeyDown && (upKeyDown || ALLOW_ROT_IN_PLACE)){
+    if(Keyboard.isKeyDown(KEY_RIGHT) && (Keyboard.isKeyDown(KEY_UP) || ALLOW_ROT_IN_PLACE)){
       rotation += ROT_SPEED * deltaTime;
     }
     
     // slow down faster than speeding up
     // to help player avoid astroid collision.
-    if(downKeyDown){
+    if(Keyboard.isKeyDown(KEY_DOWN)){ //downKeyDown){
       accel -= 100;
     }
-    else if(upKeyDown){
+    else if(Keyboard.isKeyDown(KEY_UP)){
       accel += 50;
       accel = min(accel, 10000);
       thrustTimer.tick();

@@ -33,18 +33,18 @@ SoundManager soundManager;
 
 int score = 0;
 
-// keyboard stuff
-final int KEY_SPACE = 32;
-final int KEY_D = 68;
 
-boolean leftKeyDown = false;
+/*boolean leftKeyDown = false;
 boolean rightKeyDown = false;
 boolean upKeyDown = false;
-boolean downKeyDown = false;
+boolean downKeyDown = false;*/
 
 void setup() {
   size(400, 400);
   imageMode(CENTER);
+
+  // get a nice pixelated look
+  noSmooth();
   
   timer = new Timer();
   starfield = new Starfield(100);
@@ -158,10 +158,14 @@ void createParticleSystem(PVector pos){
 void update(){
   timer.tick();
   float deltaTime = timer.getDeltaSec();
-    
+
   if(ship.isDestroyed() || numAsteroidsAlive == 0){
     endGame();
     return;
+  }
+
+  if(Keyboard.isKeyDown(KEY_SPACE)){
+    ship.fire();
   }
   
   for(int i = 0; i < asteroids.size(); i++){
@@ -230,49 +234,11 @@ void endGame(){
 }
 
 void keyReleased(){
-
-  if(keyCode == RIGHT){
-    rightKeyDown = false;
-  } 
-  
-  if(keyCode == LEFT){
-    leftKeyDown = false;
-  }
-  
-  if(keyCode == UP){
-    upKeyDown = false;
-  }
-  
-  if(keyCode == DOWN){
-    downKeyDown = false;
-  }
+  Keyboard.setKeyDown(keyCode, false);
 }
 
 void keyPressed() {
-  if (keyCode == LEFT) {
-    leftKeyDown = true;
-  }
-  
-  if (keyCode == RIGHT) {
-    rightKeyDown = true;
-  }
-  
-  if(keyCode == UP){
-    upKeyDown = true;
-  }
-  
-  if(keyCode == DOWN){
-    downKeyDown = true;
-  }
-  
-  if (keyCode == SHIFT || keyCode == KEY_SPACE) {
-    ship.fire();
-  }
-  
-  // key 'D' for debugging
-  if(keyCode == KEY_D){
-    debugOn = !debugOn;
-  }
+  Keyboard.setKeyDown(keyCode, true);  
 }
 
 /**
