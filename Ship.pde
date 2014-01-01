@@ -4,7 +4,10 @@
 public class Ship extends Sprite{
   
   private float accel;
+  
   private final float ROT_SPEED = 1.0f;
+  private final boolean ALLOW_ROT_IN_PLACE = true;
+
   private Timer thrustTimer;
   private Timer shootingTimer;
   
@@ -75,11 +78,11 @@ public class Ship extends Sprite{
   public void update(float deltaTime){
     shootingTimer.tick();
 
-    if(leftKeyDown && upKeyDown){
+    if(leftKeyDown && (upKeyDown || ALLOW_ROT_IN_PLACE)){
       rotation -= ROT_SPEED * deltaTime;
     }
     
-    if(rightKeyDown && upKeyDown){
+    if(rightKeyDown && (upKeyDown || ALLOW_ROT_IN_PLACE)){
       rotation += ROT_SPEED * deltaTime;
     }
     
