@@ -422,7 +422,7 @@ void setup() {
   //soundManager.addSound("ship_destroyed");
   
   
-  Keyboard.lockKeys(new int[]{KEY_D});
+  //Keyboard.lockKeys(new int[]{KEY_D});
 
   font = createFont("VectorBattle", 32);
   textFont(font, 24);
@@ -439,12 +439,12 @@ void draw() {
 
   if(!gameOver){
     starfield.draw();
-
-    ship.draw();    
+    
     drawSpriteList(asteroids);
     drawSpriteList(bullets);
     drawSpriteList(particleSystems);
-     
+    ship.draw();
+    
     // Not strictly requires for Processing, but
     // a bug in pjs requires this line here.
     resetMatrix();
@@ -517,11 +517,11 @@ void update(){
   if(Keyboard.isKeyDown(KEY_SPACE)){
     ship.fire();
   }
-  
-  ship.update(deltaTime);
+    
   updateSpriteList(asteroids, deltaTime);
   updateSpriteList(bullets, deltaTime);
   updateSpriteList(particleSystems, deltaTime);  
+  ship.update(deltaTime);
 
   testCollisions();
 }
