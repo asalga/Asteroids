@@ -27,17 +27,17 @@ public abstract class Sprite{
   }
   
   public void moveIfPastBounds(){
-   if(position.x > width){
-      position.x = 0; 
+   if(position.x - bounds.radius > width){
+      position.x = -bounds.radius; 
     }
-    else if(position.x < 0){
-      position.x = width; 
+    else if(position.x + bounds.radius < 0){
+      position.x = width + bounds.radius;
     }
-    else if(position.y < 0){
-        position.y = height; 
+    else if(position.y + bounds.radius < 0){
+        position.y = height + bounds.radius;
     }
-    else if(position.y > height){
-      position.y = 0;
+    else if(position.y - bounds.radius > height){
+      position.y = -bounds.radius;
     }
   }
 
