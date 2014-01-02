@@ -59,7 +59,7 @@ void setup() {
   //soundManager.addSound("ship_destroyed");
   
   
-  //Keyboard.lockKeys(new int[]{KEY_D});
+  Keyboard.lockKeys(new int[]{KEY_D});
 
   font = createFont("VectorBattle", 32);
   textFont(font, 24);
@@ -154,7 +154,7 @@ void update(){
   if(Keyboard.isKeyDown(KEY_SPACE)){
     ship.fire();
   }
-    
+  
   updateSpriteList(asteroids, deltaTime);
   updateSpriteList(bullets, deltaTime);
   updateSpriteList(particleSystems, deltaTime);  
