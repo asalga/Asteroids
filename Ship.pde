@@ -23,6 +23,10 @@ public class Ship extends Sprite{
     bounds.position = copyVector(position);
   }
   
+  public void destroy(){
+    super.destroy();
+    soundManager.playSound("mame_explode1");
+  }
   /*
     Prevent the player from firing too frequently.
   */
@@ -33,7 +37,7 @@ public class Ship extends Sprite{
 
     if(shootingTimer.getTotalTime() > 0.25f){
       shootingTimer.reset();
-      soundManager.playSound("fire");
+      soundManager.playSound("mame_fire");
       createBullet(copyVector(position), new PVector(cos(rotation) * BULLET_SPEED, sin(rotation) * BULLET_SPEED));
     }
   }

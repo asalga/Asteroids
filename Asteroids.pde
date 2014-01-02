@@ -51,9 +51,15 @@ void setup() {
 
   // 
   soundManager = new SoundManager(this);
-  soundManager.addSound("fire");
-  soundManager.addSound("asteroid_destroyed");
-  soundManager.addSound("ship_destroyed");
+  soundManager.addSound("mame_fire");
+  soundManager.addSound("mame_explode1");
+  //soundManager.addSound("rev");
+  //soundManager.addSound("mame_thrust");
+  //soundManager.addSound("asteroid_destroyed");
+  //soundManager.addSound("ship_destroyed");
+  
+  
+  Keyboard.lockKeys(new int[]{KEY_D});
 
   font = createFont("VectorBattle", 32);
   textFont(font, 24);
@@ -138,6 +144,8 @@ void update(){
   timer.tick();
   float deltaTime = timer.getDeltaSec();
 
+  debugOn = Keyboard.isKeyDown(KEY_D);  
+
   if(ship.isDestroyed() || numAsteroidsAlive == 0){
     endGame();
     return;
@@ -199,8 +207,10 @@ void testCollisions(){
     BoundingCircle ShipBounds = ship.getBoundingCircle();
     
     if(testCircleCollision(asteroidBounds, ShipBounds)){
-      ship.destroy();
-      endGame();
+      if(ship.isDestroyed() == false){
+        ship.destroy();
+        endGame();
+      }
     }
   }
 }

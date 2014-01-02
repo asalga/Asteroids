@@ -43,7 +43,7 @@ public class Asteroid extends Sprite{
 
   public void destroy(){
     super.destroy();
-    soundManager.playSound("asteroid_destroyed");
+    soundManager.playSound("mame_explode1");
     createParticleSystem(position);
 
     if(size == 1){
