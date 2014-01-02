@@ -52,6 +52,8 @@ public class Asteroid extends Sprite{
         a.setSize(0.5);
         a.position = copyVector(position);
         a.velocity = getRandomVector(new PVector(-30, -30), new PVector(30,30));
+        a.bounds = this.bounds.clone();
+        a.bounds.radius *= 0.5;
         asteroids.add(a);
         numAsteroidsAlive++;
       }
@@ -172,13 +174,15 @@ public class Ship extends Sprite{
 
   private Timer thrustTimer;
   private Timer shootingTimer;
-  
-  public Ship(){    
+  private Timer teleportTimer;
+
+  public Ship(){
     rotation = 0.0f;
     position = new PVector(width/2, height/2);
     velocity = new PVector();
     thrustTimer = new Timer();
     shootingTimer = new Timer();
+    teleportTimer = new Timer();
     
     bounds = new BoundingCircle();
     bounds.radius = 20/2.0;
@@ -189,6 +193,30 @@ public class Ship extends Sprite{
     super.destroy();
     soundManager.playSound("mame_explode1");
   }
+
+  /*
+    Move the ship to a random location without teleporting it into an asteroid.
+  */
+  private void teleport(){
+
+    // player needs to wait at least 1 second before teleporting again
+    if(teleportTimer.getTotalTime() < 1.0f){
+      return;
+    }
+
+    teleportTimer.reset();
+
+    int border = 40;
+
+    do{
+      float randX = random(40, width - 40);
+      float randY = random(40, height - 40);
+
+      position = new PVector(randX, randY);
+
+    }while(checkShipAsteroidCollision() != -1);
+  }
+
   /*
     Prevent the player from firing too frequently.
   */
@@ -248,6 +276,11 @@ public class Ship extends Sprite{
 
   public void update(float deltaTime){
     shootingTimer.tick();
+    teleportTimer.tick();
+
+    if(Keyboard.isKeyDown(KEY_CTRL)){
+      teleport();
+    }
 
     if(Keyboard.isKeyDown(KEY_LEFT) && ((Keyboard.isKeyDown(KEY_UP) || ALLOW_ROT_IN_PLACE))){
       rotation -= ROT_SPEED * deltaTime;
@@ -402,15 +435,8 @@ void setup() {
 
   // get a nice pixelated look
   noSmooth();
-  
-  timer = new Timer();
-  starfield = new Starfield(100);
-  ship = new Ship();
 
-  // Init sprites
-  generateAsteroids();
-  bullets = new ArrayList<Sprite>();
-  particleSystems = new ArrayList<Sprite>();
+  resetGame();  
 
   // 
   soundManager = new SoundManager(this);
@@ -421,11 +447,21 @@ void setup() {
   //soundManager.addSound("asteroid_destroyed");
   //soundManager.addSound("ship_destroyed");
   
-  
   Keyboard.lockKeys(new int[]{KEY_D});
 
   font = createFont("VectorBattle", 32);
   textFont(font, 24);
+}
+
+void resetGame(){
+  timer = new Timer();
+  starfield = new Starfield(100);
+  ship = new Ship();
+
+  // Init sprites
+  generateAsteroids();
+  bullets = new ArrayList<Sprite>();
+  particleSystems = new ArrayList<Sprite>();
 }
 
 void draw() {
@@ -558,6 +594,18 @@ void testCollisions(){
   }
   
   // Test collision against player's ship
+  if(checkShipAsteroidCollision() != -1 && ship.isDestroyed() == false){
+    endGame();
+  }
+}
+
+/*
+  Returns -1 if there is no collision. Otherwise returns the index
+  of the asteroid that collided with the ship.
+
+  Made this into a function since Ship needs to use it for the teleport method.
+*/
+public int checkShipAsteroidCollision(){
   for(int currAsteroid = 0; currAsteroid < asteroids.size(); currAsteroid++){
     
     Asteroid a = (Asteroid)asteroids.get(currAsteroid);
@@ -567,15 +615,14 @@ void testCollisions(){
     }
     
     BoundingCircle asteroidBounds = a.getBoundingCircle();
-    BoundingCircle ShipBounds = ship.getBoundingCircle();
+    BoundingCircle shipBounds = ship.getBoundingCircle();
     
-    if(testCircleCollision(asteroidBounds, ShipBounds)){
-      if(ship.isDestroyed() == false){
-        ship.destroy();
-        endGame();
-      }
+    if(testCircleCollision(asteroidBounds, shipBounds)){
+      return currAsteroid;
     }
   }
+
+  return -1;
 }
 
 
@@ -586,7 +633,9 @@ void endGame(){
   if(GOD_MODE == true){
     return;
   }
-  gameOver = true;
+
+  resetGame();
+  //gameOver = true;
 }
 
 void keyReleased(){
