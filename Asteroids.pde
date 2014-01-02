@@ -16,9 +16,9 @@ PFont font;
 
 Starfield starfield;
 Ship ship;
-ArrayList <Asteroid> asteroids;
-ArrayList <Bullet> bullets;
-ArrayList <ParticleSystem> particleSystems;
+ArrayList <Sprite> asteroids;
+ArrayList <Sprite> bullets;
+ArrayList <Sprite> particleSystems;
 
 Timer timer;
 
@@ -33,12 +33,6 @@ SoundManager soundManager;
 
 int score = 0;
 
-
-/*boolean leftKeyDown = false;
-boolean rightKeyDown = false;
-boolean upKeyDown = false;
-boolean downKeyDown = false;*/
-
 void setup() {
   size(400, 400);
   imageMode(CENTER);
@@ -52,12 +46,12 @@ void setup() {
 
   // Init sprites
   generateAsteroids();
-  bullets = new ArrayList<Bullet>();
-  particleSystems = new ArrayList<ParticleSystem>();
+  bullets = new ArrayList<Sprite>();
+  particleSystems = new ArrayList<Sprite>();
 
   // 
   soundManager = new SoundManager(this);
-  soundManager.addSound("shoot");
+  soundManager.addSound("fire");
   soundManager.addSound("asteroid_destroyed");
   soundManager.addSound("ship_destroyed");
 
@@ -76,26 +70,11 @@ void draw() {
 
   if(!gameOver){
     starfield.draw();
-    
-    // ASTEROIDS
-    for(int i = 0; i < asteroids.size(); i++){
-      asteroids.get(i).draw();
-    }
-  
-    // BULLETS
-    for(int i = 0; i < bullets.size(); i++){
-      bullets.get(i).draw();
-    }
 
-    // PSYS
-    for(int i = 0; i < particleSystems.size(); i++){
-      particleSystems.get(i).draw();
-    }
-
-    // SHIP
-    ship.draw();
-
-
+    ship.draw();    
+    drawSpriteList(asteroids);
+    drawSpriteList(bullets);
+    drawSpriteList(particleSystems);
      
     // Not strictly requires for Processing, but
     // a bug in pjs requires this line here.
@@ -118,7 +97,7 @@ void draw() {
 }
 
 void generateAsteroids(){
-  asteroids = new ArrayList<Asteroid>(0);
+  asteroids = new ArrayList<Sprite>(0);
   
   for(int i = 0; i < NUM_ASTEROIDS; i++){
     Asteroid a = new Asteroid();
@@ -168,21 +147,24 @@ void update(){
     ship.fire();
   }
   
-  for(int i = 0; i < asteroids.size(); i++){
-    asteroids.get(i).update(deltaTime);
-  }
-  
-  for(int i = 0; i < bullets.size(); i++){
-    bullets.get(i).update(deltaTime);
-  }
-
-  for(int i = 0; i < particleSystems.size(); i++){
-    particleSystems.get(i).update(deltaTime);
-  }
-  
   ship.update(deltaTime);
-  
+  updateSpriteList(asteroids, deltaTime);
+  updateSpriteList(bullets, deltaTime);
+  updateSpriteList(particleSystems, deltaTime);  
+
   testCollisions();
+}
+
+void updateSpriteList(ArrayList<Sprite> spriteList, float deltaTime){
+  for(int i = 0; i < spriteList.size(); i++){
+    spriteList.get(i).update(deltaTime);
+  }
+}
+
+void drawSpriteList(ArrayList<Sprite> spriteList){
+  for(int i = 0; i < spriteList.size(); i++){
+    spriteList.get(i).draw();
+  }
 }
 
 void testCollisions(){
@@ -207,7 +189,7 @@ void testCollisions(){
   // Test collision against player's ship
   for(int currAsteroid = 0; currAsteroid < asteroids.size(); currAsteroid++){
     
-    Asteroid a = asteroids.get(currAsteroid);
+    Asteroid a = (Asteroid)asteroids.get(currAsteroid);
     // We recycle the list, so make sure we don't check against and element that is not active.
     if(a.isDestroyed()){
       continue;
@@ -222,6 +204,7 @@ void testCollisions(){
     }
   }
 }
+
 
 /*
 

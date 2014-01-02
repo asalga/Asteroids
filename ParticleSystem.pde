@@ -2,8 +2,7 @@
     Small particle system is created when some of the sprites
     are destroyed.
 */
-public class ParticleSystem{
-  
+public class ParticleSystem extends Sprite{
 
   private PVector position;
   

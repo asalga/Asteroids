@@ -1,7 +1,7 @@
 /*
     Base class for Asteroids, Bullets and Ship
 */
-public class Sprite{
+public abstract class Sprite{
 
   private boolean dead;  
   
@@ -40,6 +40,10 @@ public class Sprite{
       position.y = 0;
     }
   }
+
+  public void update(float deltaTime){}
+
+  public abstract void draw();
   
   public void updateBounds(){
     bounds.position = copyVector(position);
@@ -47,6 +51,5 @@ public class Sprite{
   
   public BoundingCircle getBoundingCircle(){
     return bounds.clone();
-    //copyBoundingCircle(bounds);
   }
 }

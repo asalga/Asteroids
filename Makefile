@@ -4,5 +4,5 @@
 build: minify
 
 minify:
-	cat Asteroid.pde BoundingCircle.pde Bullet.pde Ship.pde SoundManager.js Asteroids.pde Sprite.pde Starfield.pde Timer.pde Utils.pde ParticleSystem.pde > build/build.js
+	cat Asteroid.pde BoundingCircle.pde Bullet.pde Ship.pde SoundManager.js Asteroids.pde Sprite.pde Starfield.pde Timer.pde Utils.pde ParticleSystem.pde Keyboard.pde > build/build.js
 	

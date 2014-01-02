@@ -33,7 +33,7 @@ public class Ship extends Sprite{
 
     if(shootingTimer.getTotalTime() > 0.25f){
       shootingTimer.reset();
-      soundManager.playSound("shoot");
+      soundManager.playSound("fire");
       createBullet(copyVector(position), new PVector(cos(rotation) * BULLET_SPEED, sin(rotation) * BULLET_SPEED));
     }
   }
@@ -79,6 +79,7 @@ public class Ship extends Sprite{
     popMatrix();
   }
   
+
   public void update(float deltaTime){
     shootingTimer.tick();
 
