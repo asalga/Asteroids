@@ -34,13 +34,6 @@ public float getRandomFloat(float num1, float num2){
   return random(num2, num1);
 }
 
-/*public BoundingCircle copyBoundingCircle(BoundingCircle bc){
-    BoundingCircle b = new BoundingCircle();
-    b.radius = bc.radius;
-    b.position = copyVector(bc.position);
-    return b;
-}*/
-
 public boolean testCircleCollision(BoundingCircle c1, BoundingCircle c2){
   PVector pvec = PVector.sub(c1.position, c2.position);
   if(c1.position.dist(c2.position) > c1.radius + c2.radius){

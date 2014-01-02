@@ -53,6 +53,7 @@ public class Asteroid extends Sprite{
         a.position = copyVector(position);
         a.velocity = getRandomVector(new PVector(-30, -30), new PVector(30,30));
         asteroids.add(a);
+        numAsteroidsAlive++;
       }
     }
   }

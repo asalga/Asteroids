@@ -11,9 +11,9 @@ public class BoundingCircle{
   }
 
   public BoundingCircle clone(){
-  	BoundingCircle b = new BoundingCircle();
-  	b.position = copyVector(position);
-  	b.radius = radius;
-  	return b;
+  	BoundingCircle copy = new BoundingCircle();
+  	copy.position = copyVector(position);
+  	copy.radius = radius;
+  	return copy;
   }
 }

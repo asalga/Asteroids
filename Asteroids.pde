@@ -2,6 +2,7 @@
   @pjs globalKeyEvents="true"; preload="data/asteroid.png";
 */
  
+// Andor Salga
 // A clone of Asteroids
 // November 2014
 
@@ -23,7 +24,6 @@ ArrayList <Sprite> particleSystems;
 Timer timer;
 
 boolean gameOver = false;
-
 boolean debugOn = false;
 
 final int NUM_ASTEROIDS = 25;
