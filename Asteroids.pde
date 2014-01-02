@@ -26,7 +26,7 @@ Timer timer;
 boolean gameOver = false;
 boolean debugOn = false;
 
-final int NUM_ASTEROIDS = 25;
+final int NUM_ASTEROIDS = 10;
 int numAsteroidsAlive = NUM_ASTEROIDS;
 
 SoundManager soundManager;
@@ -64,6 +64,8 @@ void resetGame(){
 
   // Init sprites
   generateAsteroids();
+  numAsteroidsAlive = asteroids.size();
+
   bullets = new ArrayList<Sprite>();
   particleSystems = new ArrayList<Sprite>();
 }
