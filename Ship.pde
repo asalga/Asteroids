@@ -10,13 +10,15 @@ public class Ship extends Sprite{
 
   private Timer thrustTimer;
   private Timer shootingTimer;
-  
-  public Ship(){    
+  private Timer teleportTimer;
+
+  public Ship(){
     rotation = 0.0f;
     position = new PVector(width/2, height/2);
     velocity = new PVector();
     thrustTimer = new Timer();
     shootingTimer = new Timer();
+    teleportTimer = new Timer();
     
     bounds = new BoundingCircle();
     bounds.radius = 20/2.0;
@@ -27,6 +29,30 @@ public class Ship extends Sprite{
     super.destroy();
     soundManager.playSound("mame_explode1");
   }
+
+  /*
+    Move the ship to a random location without teleporting it into an asteroid.
+  */
+  private void teleport(){
+
+    // player needs to wait at least 1 second before teleporting again
+    if(teleportTimer.getTotalTime() < 1.0f){
+      return;
+    }
+
+    teleportTimer.reset();
+
+    int border = 40;
+
+    do{
+      float randX = random(40, width - 40);
+      float randY = random(40, height - 40);
+
+      position = new PVector(randX, randY);
+
+    }while(checkShipAsteroidCollision() != -1);
+  }
+
   /*
     Prevent the player from firing too frequently.
   */
@@ -86,6 +112,11 @@ public class Ship extends Sprite{
 
   public void update(float deltaTime){
     shootingTimer.tick();
+    teleportTimer.tick();
+
+    if(Keyboard.isKeyDown(KEY_CTRL)){
+      teleport();
+    }
 
     if(Keyboard.isKeyDown(KEY_LEFT) && ((Keyboard.isKeyDown(KEY_UP) || ALLOW_ROT_IN_PLACE))){
       rotation -= ROT_SPEED * deltaTime;

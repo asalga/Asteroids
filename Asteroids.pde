@@ -198,6 +198,18 @@ void testCollisions(){
   }
   
   // Test collision against player's ship
+  if(checkShipAsteroidCollision() != -1 && ship.isDestroyed() == false){
+    endGame();
+  }
+}
+
+/*
+  Returns -1 if there is no collision. Otherwise returns the index
+  of the asteroid that collided with the ship.
+
+  Made this into a function since Ship needs to use it for the teleport method.
+*/
+public int checkShipAsteroidCollision(){
   for(int currAsteroid = 0; currAsteroid < asteroids.size(); currAsteroid++){
     
     Asteroid a = (Asteroid)asteroids.get(currAsteroid);
@@ -207,15 +219,14 @@ void testCollisions(){
     }
     
     BoundingCircle asteroidBounds = a.getBoundingCircle();
-    BoundingCircle ShipBounds = ship.getBoundingCircle();
+    BoundingCircle shipBounds = ship.getBoundingCircle();
     
-    if(testCircleCollision(asteroidBounds, ShipBounds)){
-      if(ship.isDestroyed() == false){
-        ship.destroy();
-        endGame();
-      }
+    if(testCircleCollision(asteroidBounds, shipBounds)){
+      return currAsteroid;
     }
   }
+
+  return -1;
 }
 
 
