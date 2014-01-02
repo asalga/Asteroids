@@ -52,6 +52,8 @@ public class Asteroid extends Sprite{
         a.setSize(0.5);
         a.position = copyVector(position);
         a.velocity = getRandomVector(new PVector(-30, -30), new PVector(30,30));
+        a.bounds = this.bounds.clone();
+        a.bounds.radius *= 0.5;
         asteroids.add(a);
         numAsteroidsAlive++;
       }
