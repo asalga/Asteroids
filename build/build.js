@@ -43,7 +43,7 @@ public class Asteroid extends Sprite{
 
   public void destroy(){
     super.destroy();
-    soundManager.playSound("asteroid_destroyed");
+    soundManager.playSound("mame_explode1");
     createParticleSystem(position);
 
     if(size == 1){
@@ -53,6 +53,7 @@ public class Asteroid extends Sprite{
         a.position = copyVector(position);
         a.velocity = getRandomVector(new PVector(-30, -30), new PVector(30,30));
         asteroids.add(a);
+        numAsteroidsAlive++;
       }
     }
   }
@@ -104,10 +105,10 @@ public class BoundingCircle{
   }
 
   public BoundingCircle clone(){
-  	BoundingCircle b = new BoundingCircle();
-  	b.position = copyVector(position);
-  	b.radius = radius;
-  	return b;
+  	BoundingCircle copy = new BoundingCircle();
+  	copy.position = copyVector(position);
+  	copy.radius = radius;
+  	return copy;
   }
 }
 /*
@@ -160,28 +161,47 @@ public class Bullet extends Sprite{
   }
 }
 /*
-    User controls the ship with their keyboard
+    User controls the ship with their keyboard.
 */
 public class Ship extends Sprite{
   
-  private float accel;  
+  private float accel;
+  
   private final float ROT_SPEED = 1.0f;
+  private final boolean ALLOW_ROT_IN_PLACE = true;
+
   private Timer thrustTimer;
+  private Timer shootingTimer;
   
   public Ship(){    
     rotation = 0.0f;
     position = new PVector(width/2, height/2);
     velocity = new PVector();
     thrustTimer = new Timer();
+    shootingTimer = new Timer();
     
     bounds = new BoundingCircle();
     bounds.radius = 20/2.0;
     bounds.position = copyVector(position);
   }
   
+  public void destroy(){
+    super.destroy();
+    soundManager.playSound("mame_explode1");
+  }
+  /*
+    Prevent the player from firing too frequently.
+  */
   public void fire(){
-    soundManager.playSound("shoot");
-    createBullet(copyVector(position), new PVector(cos(rotation) * BULLET_SPEED, sin(rotation) * BULLET_SPEED));
+    if(isDestroyed()){
+      return;
+    }
+
+    if(shootingTimer.getTotalTime() > 0.25f){
+      shootingTimer.reset();
+      soundManager.playSound("mame_fire");
+      createBullet(copyVector(position), new PVector(cos(rotation) * BULLET_SPEED, sin(rotation) * BULLET_SPEED));
+    }
   }
   
   public void draw(){
@@ -202,7 +222,7 @@ public class Ship extends Sprite{
 
     // We need to show the thruster if the user is pressing down
     // for a brief period, then hide it to make it look animated.
-    if(thrustTimer.getTotalTime() < 0.05 && upKeyDown){
+    if(thrustTimer.getTotalTime() < 0.05 && Keyboard.isKeyDown(KEY_UP)){
       // thruster
       line(-6, 3, -12, 0);
       line(-6, -3, -12, 0);
@@ -225,21 +245,24 @@ public class Ship extends Sprite{
     popMatrix();
   }
   
+
   public void update(float deltaTime){
-    if(leftKeyDown && upKeyDown){
+    shootingTimer.tick();
+
+    if(Keyboard.isKeyDown(KEY_LEFT) && ((Keyboard.isKeyDown(KEY_UP) || ALLOW_ROT_IN_PLACE))){
       rotation -= ROT_SPEED * deltaTime;
     }
     
-    if(rightKeyDown && upKeyDown){
+    if(Keyboard.isKeyDown(KEY_RIGHT) && (Keyboard.isKeyDown(KEY_UP) || ALLOW_ROT_IN_PLACE)){
       rotation += ROT_SPEED * deltaTime;
     }
     
     // slow down faster than speeding up
     // to help player avoid astroid collision.
-    if(downKeyDown){
+    if(Keyboard.isKeyDown(KEY_DOWN)){ //downKeyDown){
       accel -= 100;
     }
-    else if(upKeyDown){
+    else if(Keyboard.isKeyDown(KEY_UP)){
       accel += 50;
       accel = min(accel, 10000);
       thrustTimer.tick();
@@ -342,6 +365,7 @@ function SoundManager(){
   @pjs globalKeyEvents="true"; preload="data/asteroid.png";
 */
  
+// Andor Salga
 // A clone of Asteroids
 // November 2014
 
@@ -356,9 +380,9 @@ PFont font;
 
 Starfield starfield;
 Ship ship;
-ArrayList <Asteroid> asteroids;
-ArrayList <Bullet> bullets;
-ArrayList <ParticleSystem> particleSystems;
+ArrayList <Sprite> asteroids;
+ArrayList <Sprite> bullets;
+ArrayList <Sprite> particleSystems;
 
 Timer timer;
 
@@ -372,18 +396,12 @@ SoundManager soundManager;
 
 int score = 0;
 
-// keyboard stuff
-final int KEY_SPACE = 32;
-final int KEY_D = 68;
-
-boolean leftKeyDown = false;
-boolean rightKeyDown = false;
-boolean upKeyDown = false;
-boolean downKeyDown = false;
-
 void setup() {
   size(400, 400);
   imageMode(CENTER);
+
+  // get a nice pixelated look
+  noSmooth();
   
   timer = new Timer();
   starfield = new Starfield(100);
@@ -391,14 +409,20 @@ void setup() {
 
   // Init sprites
   generateAsteroids();
-  bullets = new ArrayList<Bullet>();
-  particleSystems = new ArrayList<ParticleSystem>();
+  bullets = new ArrayList<Sprite>();
+  particleSystems = new ArrayList<Sprite>();
 
   // 
   soundManager = new SoundManager(this);
-  soundManager.addSound("shoot");
-  soundManager.addSound("asteroid_destroyed");
-  soundManager.addSound("ship_destroyed");
+  soundManager.addSound("mame_fire");
+  soundManager.addSound("mame_explode1");
+  //soundManager.addSound("rev");
+  //soundManager.addSound("mame_thrust");
+  //soundManager.addSound("asteroid_destroyed");
+  //soundManager.addSound("ship_destroyed");
+  
+  
+  Keyboard.lockKeys(new int[]{KEY_D});
 
   font = createFont("VectorBattle", 32);
   textFont(font, 24);
@@ -415,26 +439,11 @@ void draw() {
 
   if(!gameOver){
     starfield.draw();
-    
-    // ASTEROIDS
-    for(int i = 0; i < asteroids.size(); i++){
-      asteroids.get(i).draw();
-    }
-  
-    // BULLETS
-    for(int i = 0; i < bullets.size(); i++){
-      bullets.get(i).draw();
-    }
 
-    // PSYS
-    for(int i = 0; i < particleSystems.size(); i++){
-      particleSystems.get(i).draw();
-    }
-
-    // SHIP
-    ship.draw();
-
-
+    ship.draw();    
+    drawSpriteList(asteroids);
+    drawSpriteList(bullets);
+    drawSpriteList(particleSystems);
      
     // Not strictly requires for Processing, but
     // a bug in pjs requires this line here.
@@ -457,7 +466,7 @@ void draw() {
 }
 
 void generateAsteroids(){
-  asteroids = new ArrayList<Asteroid>(0);
+  asteroids = new ArrayList<Sprite>(0);
   
   for(int i = 0; i < NUM_ASTEROIDS; i++){
     Asteroid a = new Asteroid();
@@ -497,27 +506,36 @@ void createParticleSystem(PVector pos){
 void update(){
   timer.tick();
   float deltaTime = timer.getDeltaSec();
-    
+
+  debugOn = Keyboard.isKeyDown(KEY_D);  
+
   if(ship.isDestroyed() || numAsteroidsAlive == 0){
     endGame();
     return;
   }
-  
-  for(int i = 0; i < asteroids.size(); i++){
-    asteroids.get(i).update(deltaTime);
-  }
-  
-  for(int i = 0; i < bullets.size(); i++){
-    bullets.get(i).update(deltaTime);
-  }
 
-  for(int i = 0; i < particleSystems.size(); i++){
-    particleSystems.get(i).update(deltaTime);
+  if(Keyboard.isKeyDown(KEY_SPACE)){
+    ship.fire();
   }
   
   ship.update(deltaTime);
-  
+  updateSpriteList(asteroids, deltaTime);
+  updateSpriteList(bullets, deltaTime);
+  updateSpriteList(particleSystems, deltaTime);  
+
   testCollisions();
+}
+
+void updateSpriteList(ArrayList<Sprite> spriteList, float deltaTime){
+  for(int i = 0; i < spriteList.size(); i++){
+    spriteList.get(i).update(deltaTime);
+  }
+}
+
+void drawSpriteList(ArrayList<Sprite> spriteList){
+  for(int i = 0; i < spriteList.size(); i++){
+    spriteList.get(i).draw();
+  }
 }
 
 void testCollisions(){
@@ -542,7 +560,7 @@ void testCollisions(){
   // Test collision against player's ship
   for(int currAsteroid = 0; currAsteroid < asteroids.size(); currAsteroid++){
     
-    Asteroid a = asteroids.get(currAsteroid);
+    Asteroid a = (Asteroid)asteroids.get(currAsteroid);
     // We recycle the list, so make sure we don't check against and element that is not active.
     if(a.isDestroyed()){
       continue;
@@ -552,10 +570,14 @@ void testCollisions(){
     BoundingCircle ShipBounds = ship.getBoundingCircle();
     
     if(testCircleCollision(asteroidBounds, ShipBounds)){
-      endGame();
+      if(ship.isDestroyed() == false){
+        ship.destroy();
+        endGame();
+      }
     }
   }
 }
+
 
 /*
 
@@ -568,49 +590,11 @@ void endGame(){
 }
 
 void keyReleased(){
-
-  if(keyCode == RIGHT){
-    rightKeyDown = false;
-  } 
-  
-  if(keyCode == LEFT){
-    leftKeyDown = false;
-  }
-  
-  if(keyCode == UP){
-    upKeyDown = false;
-  }
-  
-  if(keyCode == DOWN){
-    downKeyDown = false;
-  }
+  Keyboard.setKeyDown(keyCode, false);
 }
 
 void keyPressed() {
-  if (keyCode == LEFT) {
-    leftKeyDown = true;
-  }
-  
-  if (keyCode == RIGHT) {
-    rightKeyDown = true;
-  }
-  
-  if(keyCode == UP){
-    upKeyDown = true;
-  }
-  
-  if(keyCode == DOWN){
-    downKeyDown = true;
-  }
-  
-  if (keyCode == SHIFT || keyCode == KEY_SPACE) {
-    ship.fire();
-  }
-  
-  // key 'D' for debugging
-  if(keyCode == KEY_D){
-    debugOn = !debugOn;
-  }
+  Keyboard.setKeyDown(keyCode, true);  
 }
 
 /**
@@ -640,7 +624,7 @@ void createBullet(PVector position, PVector velocity){
 /*
     Base class for Asteroids, Bullets and Ship
 */
-public class Sprite{
+public abstract class Sprite{
 
   private boolean dead;  
   
@@ -679,6 +663,10 @@ public class Sprite{
       position.y = 0;
     }
   }
+
+  public void update(float deltaTime){}
+
+  public abstract void draw();
   
   public void updateBounds(){
     bounds.position = copyVector(position);
@@ -686,7 +674,6 @@ public class Sprite{
   
   public BoundingCircle getBoundingCircle(){
     return bounds.clone();
-    //copyBoundingCircle(bounds);
   }
 }
 /*
@@ -838,13 +825,6 @@ public float getRandomFloat(float num1, float num2){
   return random(num2, num1);
 }
 
-/*public BoundingCircle copyBoundingCircle(BoundingCircle bc){
-    BoundingCircle b = new BoundingCircle();
-    b.radius = bc.radius;
-    b.position = copyVector(bc.position);
-    return b;
-}*/
-
 public boolean testCircleCollision(BoundingCircle c1, BoundingCircle c2){
   PVector pvec = PVector.sub(c1.position, c2.position);
   if(c1.position.dist(c2.position) > c1.radius + c2.radius){
@@ -874,8 +854,7 @@ public static String prependStringWithString(String baseString, String prefix, i
     Small particle system is created when some of the sprites
     are destroyed.
 */
-public class ParticleSystem{
-  
+public class ParticleSystem extends Sprite{
 
   private PVector position;
   
@@ -1032,3 +1011,185 @@ public class ParticleSystem{
     return true;
   }
 }
+/*
+ * Classes poll keyboard state to get state of keys.
+ */
+public static class Keyboard{
+  
+  private static final int NUM_KEYS = 128;
+  
+  // Locking keys are good for toggling things.
+  // After locking a key, when a user presses and releases a key, it will register and
+  // being 'down' (even though it has been released). Once the user presses it again,
+  // it will register as 'up'.
+  private static boolean[] lockableKeys = new boolean[NUM_KEYS];
+  
+  // Use char since we only need to store 2 states (0, 1)
+  private static char[] lockedKeyPresses = new char[NUM_KEYS];
+  
+  // The key states, true if key is down, false if key is up.
+  private static boolean[] keys = new boolean[NUM_KEYS];
+  
+  /*
+   * The specified keys will stay down even after user releases the key.
+   * Once they press that key again, only then will the key state be changed to up(false).
+   */
+  public static void lockKeys(int[] keys){
+    for(int k : keys){
+      if(isValidKey(k)){
+        lockableKeys[k] = true;
+      }
+    }
+  }
+  
+  /*
+   * TODO: if the key was locked and is down, then we unlock it, it needs to 'pop' back up.
+   */
+  public static void unlockKeys(int[] keys){
+    for(int k : keys){
+      if(isValidKey(k)){
+        lockableKeys[k] = false;
+      }
+    }
+  }
+  
+  /*
+   *
+   */
+  public static void reset(){
+    
+  }
+  
+  /* This is for the case when we want to start off the game
+   * assuming a key is already down.
+   */
+  public static void setVirtualKeyDown(int key, boolean state){
+    setKeyDown(key, true);
+    setKeyDown(key, false);
+  }
+  
+  /**
+   */
+  private static boolean isValidKey(int key){
+    return (key > -1 && key < NUM_KEYS);
+  }
+  
+  /*
+   * Set the state of a key to either down (true) or up (false)
+   */
+  public static void setKeyDown(int key, boolean state){
+    
+    if(isValidKey(key)){
+      
+      // If the key is lockable, as soon as we tell the class the key is down, we lock it.
+      if( lockableKeys[key] ){
+          // First time pressed
+          if(state == true && lockedKeyPresses[key] == 0){
+            lockedKeyPresses[key]++;
+            keys[key] = true;
+          }
+          // First time released
+          else if(state == false && lockedKeyPresses[key] == 1){
+            lockedKeyPresses[key]++;
+          }
+          // Second time pressed
+          else if(state == true && lockedKeyPresses[key] == 2){
+             lockedKeyPresses[key]++;
+          }
+          // Second time released
+          else if (state == false && lockedKeyPresses[key] == 3){
+            lockedKeyPresses[key] = 0;
+            keys[key] = false;
+          }
+      }
+      else{
+        keys[key] = state;
+      }
+    }
+  }
+  
+  /* 
+   * Returns true if the specified key is down.
+   */
+  public static boolean isKeyDown(int key){
+    return keys[key];
+  }
+}
+
+// These are outside of keyboard simply because I don't want to keep
+// typing Keyboard.KEY_* in the main Tetrissing.pde file
+final int KEY_BACKSPACE = 8;
+final int KEY_TAB       = 9;
+final int KEY_ENTER     = 10;
+
+final int KEY_SHIFT     = 16;
+final int KEY_CTRL      = 17;
+final int KEY_ALT       = 18;
+
+final int KEY_CAPS      = 20;
+final int KEY_ESC       = 27;
+
+final int KEY_SPACE  = 32;
+final int KEY_PGUP   = 33;
+final int KEY_PGDN   = 34;
+final int KEY_END    = 35;
+final int KEY_HOME   = 36;
+
+final int KEY_LEFT   = 37;
+final int KEY_UP     = 38;
+final int KEY_RIGHT  = 39;
+final int KEY_DOWN   = 40;
+
+final int KEY_0 = 48;
+final int KEY_1 = 49;
+final int KEY_2 = 50;
+final int KEY_3 = 51;
+final int KEY_4 = 52;
+final int KEY_5 = 53;
+final int KEY_6 = 54;
+final int KEY_7 = 55;
+final int KEY_8 = 56;
+final int KEY_9 = 57;
+
+final int KEY_A = 65;
+final int KEY_B = 66;
+final int KEY_C = 67;
+final int KEY_D = 68;
+final int KEY_E = 69;
+final int KEY_F = 70;
+final int KEY_G = 71;
+final int KEY_H = 72;
+final int KEY_I = 73;
+final int KEY_J = 74;
+final int KEY_K = 75;
+final int KEY_L = 76;
+final int KEY_M = 77;
+final int KEY_N = 78;
+final int KEY_O = 79;
+final int KEY_P = 80;
+final int KEY_Q = 81;
+final int KEY_R = 82;
+final int KEY_S = 83;
+final int KEY_T = 84;
+final int KEY_U = 85;
+final int KEY_V = 86;
+final int KEY_W = 87;
+final int KEY_X = 88;
+final int KEY_Y = 89;
+final int KEY_Z = 90;
+
+// Function keys
+final int KEY_F1  = 112;
+final int KEY_F2  = 113;
+final int KEY_F3  = 114;
+final int KEY_F4  = 115;
+final int KEY_F5  = 116;
+final int KEY_F6  = 117;
+final int KEY_F7  = 118;
+final int KEY_F8  = 119;
+final int KEY_F9  = 120;
+final int KEY_F10 = 121;
+final int KEY_F12 = 122;
+
+//final int KEY_INSERT = 155;
+
