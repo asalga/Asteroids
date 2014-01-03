@@ -42,6 +42,12 @@ public class Ship extends Sprite{
 
     teleportTimer.reset();
 
+    // Make sure not to teleport too close to an astroid, the player
+    // needs a chance to dodge astroids in their new position.
+    bounds.radius *= 3;
+
+    // Don't spawn the player too close to the edge of the game border, it
+    // might be too hard to see.
     int border = 40;
 
     do{
@@ -49,8 +55,11 @@ public class Ship extends Sprite{
       float randY = random(40, height - 40);
 
       position = new PVector(randX, randY);
+      bounds.position = copyVector(position);
 
     }while(checkShipAsteroidCollision() != -1);
+
+    bounds.radius /= 3;
   }
 
   /*
@@ -103,13 +112,14 @@ public class Ship extends Sprite{
     if(debugOn){
       noFill();
       stroke(255, 0, 0);
-      ellipse(0, 0, bounds.radius*2, bounds.radius*2);
+      ellipse(0, 0, bounds.radius * 2, bounds.radius * 2);
     }
     
     popMatrix();
   }
   
-
+  /*
+  */
   public void update(float deltaTime){
     shootingTimer.tick();
     teleportTimer.tick();
