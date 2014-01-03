@@ -65,7 +65,6 @@ void resetGame(){
   // Init sprites
   generateAsteroids();
   numAsteroidsAlive = asteroids.size();
-
   bullets = new ArrayList<Sprite>();
   particleSystems = new ArrayList<Sprite>();
 }
