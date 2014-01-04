@@ -1,5 +1,5 @@
 /*
-  @pjs globalKeyEvents="true"; preload="data/asteroid.png";
+  @pjs globalKeyEvents="true"; preload="data/asteroid.png, data/fonts/asteroids-large-font.png, data/fonts/small-font.png";
 */
  
 // Andor Salga

@@ -9,14 +9,6 @@ public PVector copyVector(PVector vec){
   }
   return new PVector(vec.x, vec.y, vec.z);
 }
-  
-  /*
-  * This is here simply to provide a means for us to call a custom method for the JS version.
-  */
-  public static int charCodeAt(char ch){
-    return ch;
-  }
-  
 
 public PVector randomVector(){
   PVector pvec = new PVector(random(-1,1), random(-1,1), 0);
@@ -66,4 +58,3 @@ public static String prependStringWithString(String baseString, String prefix, i
   
   return baseString;
 }
-

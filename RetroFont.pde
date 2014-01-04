@@ -79,7 +79,7 @@ public class RetroFont{
   //public static void create(String imageFilename, int charWidth, int charHeight, int borderSize){ 
   //PImage fontSheet = loadImage(imageFilename);
   public PImage getGlyph(char ch){
-    int asciiCode = charCodeAt(ch);
+    int asciiCode = RetroUtils.charCodeAt(ch);
     
     if(asciiCode-32 >= 96 || asciiCode-32 <= 0){
       return chars[0];
@@ -89,7 +89,7 @@ public class RetroFont{
   }
   
   public PImage getTrimmedGlyph(char ch){
-    int asciiCode = charCodeAt(ch);
+    int asciiCode = RetroUtils.charCodeAt(ch);
     return trimmedChars[asciiCode-32];
   }
   
