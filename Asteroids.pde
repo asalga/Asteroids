@@ -21,6 +21,11 @@ ArrayList <Sprite> asteroids;
 ArrayList <Sprite> bullets;
 ArrayList <Sprite> particleSystems;
 
+RetroFont fontSmall;
+RetroFont largeFont;
+RetroLabel copyright;
+RetroLabel currentScore;
+
 Timer timer;
 
 boolean gameOver = false;
@@ -40,7 +45,21 @@ void setup() {
   // get a nice pixelated look
   noSmooth();
 
-  resetGame();  
+  resetGame();
+
+  fontSmall = new RetroFont("data/fonts/small-font.png", 4, 4, 1);
+  largeFont = new RetroFont("data/fonts/asteroids-large-font.png", 6, 7, 1);
+
+  copyright = new RetroLabel(fontSmall);
+  copyright.setHorizontalSpacing(1);
+  copyright.pixelsFromTop(height-40);
+  copyright.setHorizontalTrimming(true);
+
+  // We don't want the score bouncing around, so leave the trimming off.
+  currentScore = new RetroLabel(largeFont);
+  //currentScore.setHorizontalSpacing(1);
+  //currentScore.setHorizontalTrimming(true);
+  currentScore.pixelsFromTopLeft(10, 10);
 
   // 
   soundManager = new SoundManager(this);
@@ -73,7 +92,9 @@ void draw() {
   update();
   
   background(0);
-  
+  copyright.setText("2014 ANDOR INC");
+  currentScore.setText(prependStringWithString("" + score, "0", 8));
+
   // Not strictly requires for Processing, but
   // a bug in pjs requires this line here.
   resetMatrix();
@@ -91,11 +112,17 @@ void draw() {
     resetMatrix();
     
     // SCORE
-    pushStyle();
+    /*pushStyle();
     fill(255);
     textAlign(CENTER);
+    popStyle();*/
 
-    text(prependStringWithString("" + score, "0", 8), width/2, 50);
+    pushStyle();
+    pushMatrix();
+    copyright.draw();
+    scale(2);
+    currentScore.draw();
+    popMatrix();
     popStyle();
   }else{
     pushStyle();
@@ -103,6 +130,13 @@ void draw() {
     fill(255);
     text("Game Over", width/2, height/2);
     popStyle();
+  }
+
+  // Add scanlines for retro look
+  stroke(64, 128);
+  strokeWeight(1);
+  for(int i = 0; i < height; i += 2 ){
+    line(0, i, width, i);
   }
 }
 
