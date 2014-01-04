@@ -65,15 +65,8 @@ void setup() {
   soundManager = new SoundManager(this);
   soundManager.addSound("mame_fire");
   soundManager.addSound("mame_explode1");
-  //soundManager.addSound("rev");
-  //soundManager.addSound("mame_thrust");
-  //soundManager.addSound("asteroid_destroyed");
-  //soundManager.addSound("ship_destroyed");
   
   Keyboard.lockKeys(new int[]{KEY_D});
-
-  font = createFont("VectorBattle", 32);
-  textFont(font, 24);
 }
 
 void resetGame(){
@@ -110,12 +103,6 @@ void draw() {
     // Not strictly requires for Processing, but
     // a bug in pjs requires this line here.
     resetMatrix();
-    
-    // SCORE
-    /*pushStyle();
-    fill(255);
-    textAlign(CENTER);
-    popStyle();*/
 
     pushStyle();
     pushMatrix();
@@ -133,11 +120,15 @@ void draw() {
   }
 
   // Add scanlines for retro look
-  stroke(64, 128);
+  stroke(16, 128);
   strokeWeight(1);
   for(int i = 0; i < height; i += 2 ){
     line(0, i, width, i);
   }
+  
+  //for(int i = 0; i < width; i += 2 ){
+  //  line(i, 0, i, height);
+  //}
 }
 
 void generateAsteroids(){
