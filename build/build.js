@@ -1,4 +1,625 @@
 /*
+    A panel represents a generic container that can hold
+    other widgets.
+*/
+public class RetroPanel extends RetroWidget{
+
+  ArrayList<RetroWidget> children;
+  protected boolean dirty;
+  
+  // Keep track of where the panel is pinned to its parent
+  // If the panel becomes dirty, these values can be used to reposition
+  // the panel to its proper placement.
+  private int anchor;
+  private int yPixels;
+  private int xPixels;
+  
+  private static final int FROM_TOP = 0;
+  private static final int FROM_CENTER = 1;
+  private static final int FROM_BOTTOM = 2;
+  private static final int FROM_LEFT = 3;
+  private static final int FROM_RIGHT = 4;
+  
+  private static final int FROM_TOP_LEFT = 5;
+  private static final int FROM_TOP_RIGHT = 6;
+
+  private static final int FROM_BOTTOM_LEFT = 7;
+  private static final int FROM_BOTTOM_RIGHT = 8;
+  
+  /*
+  */
+  public RetroPanel(){
+    w = 0;
+    h = 0;
+    x = 0;
+    y = 0;
+    removeAllChildren();
+    
+    anchor = FROM_TOP;
+    xPixels = yPixels = 0;
+  }
+  
+  public void removeAllChildren(){
+    children = new ArrayList<RetroWidget>();
+  }
+
+  public void addWidget(RetroWidget widget){
+    widget.setParent(this);
+    children.add(widget);
+    
+    widget.setDebug(debugDraw);
+  }
+  
+  /*
+    If the width changes, we'll need to tell all the children
+    to readjust themselves.
+  */
+  public void setWidth(int w){
+    this.w = w;
+  }
+  
+  public int getX(){
+    return x;
+  }
+  
+  public int getY(){
+    return y;
+  }
+  
+  public int getWidth(){
+    return w;
+  }
+  
+  public RetroPanel(int x, int y, int w, int h){
+    removeAllChildren();
+    this.w = w;
+    this.h = h;
+    this.x = x;
+    this.y = y;
+  }
+  
+  /*
+      Render widget from the top center relative to parent.
+  */
+  public void pixelsFromTop(int yPixels){
+    RetroWidget p = getParent();
+    
+    anchor = FROM_TOP;
+    this.yPixels = yPixels;
+
+    x = (p.w/2) - (w/2);
+    y = yPixels;
+  }
+  
+  /*
+  */
+  public void pixelsFromTopLeft(int yPixels, int xPixels){
+    RetroWidget p = getParent();
+    
+    anchor = FROM_TOP_LEFT;
+    this.yPixels = yPixels;
+    this.xPixels = xPixels;
+    
+    x = xPixels;
+    y = yPixels;
+  }
+  
+  /*
+  */
+  public void pixelsFromTopRight(int yPixels, int xPixels){
+    RetroWidget p = getParent();
+    
+    anchor = FROM_TOP_RIGHT;
+    this.yPixels = yPixels;
+    this.xPixels = xPixels;
+
+    x = p.w - w;
+    y = yPixels;
+  }
+  
+  
+  
+  /*
+    TODO: needs debugging
+  */
+  public void pixelsFromBottomRight(int yPixels, int xPixels){
+    RetroWidget p = getParent();
+    
+    anchor = FROM_BOTTOM_RIGHT;
+    this.yPixels = yPixels;
+    this.xPixels = xPixels;
+    
+    x = p.w - w + xPixels;
+    y = p.h - yPixels - h;
+  }
+  
+  /*
+  */
+  public void pixelsFromBottomLeft(int yPixels, int xPixels){
+    RetroWidget p = getParent();
+    
+    anchor = FROM_BOTTOM_LEFT;
+    this.yPixels = yPixels;
+    this.xPixels = xPixels;
+    
+    x = xPixels;
+    y = p.h - yPixels - h;
+  }
+    
+  /**
+   */
+  public void pixelsFromCenter(int xPixels, int yPixels){
+    RetroWidget p = getParent();
+    
+    anchor = FROM_CENTER;
+    this.yPixels = yPixels;
+    this.xPixels = xPixels;
+    
+    x = (p.w/2) - (w/2) + xPixels;
+    y = (p.h/2) - (h/2) + yPixels;
+  }
+  
+  /*
+  */
+  public void pixelsFromLeft(int xPixels){
+    RetroWidget p = getParent();
+    
+    anchor = FROM_LEFT;
+    this.xPixels = xPixels;
+    
+    x = xPixels;
+    y = (p.h/2) - (h/2);
+  }
+  
+  /*
+  */
+  public void pixelsFromRight(int xPixels){
+    RetroWidget p = getParent();
+    
+    anchor = FROM_RIGHT;
+    this.xPixels = xPixels;
+
+    x = p.w - w - xPixels;
+    y = (p.h/2) - (h/2);
+  }
+  
+  
+  public void updatePosition(){
+    dirty = true;
+  }
+  
+  /*
+    If debugging is on, this widget along with all children will
+    have a red outline around them.
+  */
+  public void setDebug(boolean debugOn){
+    super.setDebug(debugOn);
+    
+    for(int i = 0; i < children.size(); i++){
+      children.get(i).setDebug(debugOn);
+    }
+  }
+
+  
+  /*
+  */
+  public void draw(){
+    
+    // If the 
+    if(dirty == true){
+      dirty = false;
+      
+      //if(DEBUG_CONSOLE_ON){
+        //println("No longer dirty");
+      //}
+      
+      switch(anchor){
+        case FROM_TOP: pixelsFromTop(yPixels);break;
+        case FROM_CENTER:pixelsFromCenter(xPixels, yPixels);break;
+        case FROM_BOTTOM:break;
+        
+        
+        case FROM_LEFT:   pixelsFromLeft(xPixels);break;
+        case FROM_RIGHT:  pixelsFromRight(xPixels);break;
+        
+        case FROM_TOP_LEFT:   pixelsFromTopLeft(yPixels, xPixels);break;
+        case FROM_TOP_RIGHT:  pixelsFromTopRight(yPixels, xPixels);break;
+        
+        case FROM_BOTTOM_LEFT:  pixelsFromBottomLeft(yPixels, xPixels);break;
+        case FROM_BOTTOM_RIGHT: pixelsFromBottomRight(yPixels, xPixels);break;
+      }
+    }
+    
+    if(debugDraw){
+      pushStyle();
+      noFill();
+      stroke(255, 0, 0, 255);
+      strokeWeight(1);
+      rect(x, y, w, h);
+      popStyle();
+    }
+    
+    if(visible == false || children.size() == 0){
+      return;
+    }
+    
+    pushMatrix();
+    translate(x, y);
+    for(int i = 0; i < children.size(); i++){
+      children.get(i).draw();
+    }
+    popMatrix();
+  }
+}
+/*
+*/
+public class RetroFont{
+  
+  private PImage chars[];
+  private PImage trimmedChars[];
+  
+  private int glyphWidth;
+  private int glyphHeight;
+  
+  /*
+      Removes the transparent pixels from the left and right sides of
+      the glyph.
+  */
+  private PImage truncateImage(PImage glyph){
+    
+    int startX = 0;
+    int endX = glyph.width - 1;
+    int x, y;
+
+    // Find the starting X coord of the image.
+    for(x = glyph.width; x >= 0 ; x--){
+      for(y = 0; y < glyph.height; y++){
+        
+        color testColor = glyph.get(x, y);
+        if( alpha(testColor) > 0.0){
+          startX = x;
+        }
+      }
+    }
+
+   // Find the ending coord
+    for(x = 0; x < glyph.width; x++){
+      for(y = 0; y < glyph.height; y++){
+        
+        color testColor = glyph.get(x,y);
+        if( alpha(testColor) > 0.0){
+          endX = x;
+        }
+      }
+    }
+    return glyph.get(startX, 0, endX - startX + 1, glyph.height);
+  }
+  
+  
+  // Do not instantiate directly
+  public RetroFont(String imageFilename, int glyphWidth, int glyphHeight, int borderSize){
+    this.glyphWidth = glyphWidth;
+    this.glyphHeight = glyphHeight;
+    
+    PImage fontSheet = loadImage(imageFilename);
+    
+    chars = new PImage[96];
+    trimmedChars = new PImage[96];
+    
+    int x = 0;
+    int y = 0;
+    
+    //
+    //
+    for(int currChar = 0; currChar < 96; currChar++){  
+      chars[currChar] = fontSheet.get(x, y, glyphWidth, glyphHeight);
+      trimmedChars[currChar] = truncateImage(fontSheet.get(x, y, glyphWidth, glyphHeight));
+      
+      x += glyphWidth + borderSize;
+      if(x >= fontSheet.width){
+        x = 0;
+        y += glyphHeight + borderSize;
+      }
+    }
+    
+    
+    // For each character, truncate the x margin
+    //for(int currChar = 0; currChar < 96; currChar++){
+      //chars[currChar] = truncateImage( chars[currChar] );
+    //}
+  }
+  
+  //public static void create(String imageFilename, int charWidth, int charHeight, int borderSize){ 
+  //PImage fontSheet = loadImage(imageFilename);
+  public PImage getGlyph(char ch){
+    int asciiCode = RetroUtils.charCodeAt(ch);
+    
+    if(asciiCode-32 >= 96 || asciiCode-32 <= 0){
+      return chars[0];
+    }
+ 
+    return chars[asciiCode-32];
+  }
+  
+  public PImage getTrimmedGlyph(char ch){
+    int asciiCode = RetroUtils.charCodeAt(ch);
+    return trimmedChars[asciiCode-32];
+  }
+  
+  public int getGlyphWidth(){
+    return glyphWidth;
+  }
+  
+  public int getGlyphHeight(){
+    return glyphHeight;
+  }
+}
+/*
+ * 
+ */
+public class RetroLabel extends RetroPanel{
+  
+  public static final int JUSTIFY_MANUAL = 0; 
+  public static final int JUSTIFY_LEFT = 1;
+  //public static final int JUSTIFY_RIGHT = 1;
+
+  private final int NEWLINE = 10;
+
+  private String text;
+  private RetroFont font;
+  
+  //
+  private int horizontalSpacing;
+  private int verticalSpacing;
+  private boolean horizontalTrimming;
+  
+  private int justification;
+  
+  public RetroLabel(RetroFont font){
+    setFont(font);
+    setVerticalSpacing(1);
+    setHorizontalSpacing(1);
+    //setJustification(JUSTIFY_LEFT);
+    setHorizontalTrimming(false);
+  }
+  
+  public void setHorizontalTrimming(boolean horizTrim){
+    horizontalTrimming = horizTrim;
+  }
+  
+  /**
+  */
+  public void setHorizontalSpacing(int spacing){
+    horizontalSpacing = spacing;
+    dirty = true;
+  }
+  
+  public void setVerticalSpacing(int spacing){
+    verticalSpacing = spacing;
+    dirty = true;
+  }
+  
+  /*
+   * Will immediately calculate the width 
+   */
+  public void setText(String text){
+    this.text = text;
+    dirty = true;
+    
+    int newWidth = 0;
+    int newHeight = font.getGlyphHeight();
+    
+    int longestLine = 0;
+    
+    for(int letter = 0; letter < text.length(); letter++){
+    
+      if((text.charAt(letter)) == 10){
+        newHeight += font.getGlyphHeight();
+      }
+      else{
+        PImage glyph = getGlyph(text.charAt(letter));
+        
+        if(glyph != null){
+          newWidth += glyph.width + horizontalSpacing;
+        }
+      }
+    }
+    h = newHeight;
+    w = newWidth;
+  }
+  
+  public void setFont(RetroFont font){
+    this.font = font;
+    dirty = true;
+    h = this.font.getGlyphHeight();
+  }
+  
+  /**
+  */
+  private int getStringWidth(String str){
+    return str.length() * font.getGlyphWidth() + (str.length() * horizontalSpacing );
+  }
+  
+  //public void setJustification(int justify){
+  //   justification = justify;
+  //}
+  
+  /**
+    Draws the text in the label depending on the
+    justification of the panel is sits inside
+  */
+  public void draw(){
+    pushStyle();
+    imageMode(CORNER);
+
+    super.draw();
+    
+    // Return if there is nothing to draw
+    if(text == null || visible == false){
+      return;
+    }
+    
+    if(justification == JUSTIFY_MANUAL){
+      int currX = x;
+      int lineIndex = 0;
+      
+      for(int letter = 0; letter < text.length(); letter++){
+        if((int)text.charAt(letter) == NEWLINE){
+          lineIndex++;
+          currX = x;
+          continue;
+        }
+        PImage glyph = getGlyph(text.charAt(letter));
+        
+        if(glyph != null){
+          image(glyph, currX, y + lineIndex * (font.getGlyphHeight() + verticalSpacing));
+
+          currX += glyph.width + horizontalSpacing;
+        }
+      }
+      currX += font.getGlyphWidth();
+    }
+    else{
+    
+      // iterate over each word and see if it would fit into the
+      // panel. If not, add a line break
+      String[] words = text.split(" ");
+      int[] firstCharIndex = new int[words.length];
+      
+      // get indices of fist char of every word
+      // for(int word = 0; word < words.length; word++){
+      //  firstCharIndex[word] = 
+      //}
+       firstCharIndex[0] = 0;
+      
+       int iter = 1;
+       for(int letter = 0; letter < text.length(); letter++){
+         if(text.charAt(letter) == ' '){
+           firstCharIndex[iter] = letter + 1;
+           iter++;
+         }
+       }
+       
+       int[] wordWidths;
+      
+      // start drawing at the panel
+      int currXPos = x;
+      
+      int lineIndex = 0;
+      
+      // Iterate over all the words
+      for(int word = 0; word < words.length; word++){
+        int wordWidth = getStringWidth(words[word]);
+        
+        if(justification == JUSTIFY_LEFT){
+          if(word != 0 && currXPos + wordWidth + 0 >  getParent().getWidth() ){
+            lineIndex++;
+            currXPos = x;
+          }
+        }
+        
+        // Iterate over the letter of each word
+        for(int letter = 0; letter < words[word].length(); letter++){
+          
+          int firstChar = firstCharIndex[word];
+          
+          //
+          if((int)words[word].charAt(letter) == NEWLINE){
+            lineIndex++;
+            currXPos = x;
+            continue;
+          }
+          
+          PImage glyph = getGlyph(words[word].charAt(letter));
+          
+          if(glyph != null){
+            image(glyph, currXPos, lineIndex * (font.getGlyphHeight() + verticalSpacing));
+            currXPos += font.getGlyphWidth() + horizontalSpacing;
+          }
+        }
+        currXPos += font.getGlyphWidth();
+      }
+    }
+    popStyle();
+  }
+   
+  private PImage getGlyph(char ch){
+    if(horizontalTrimming == true){
+      return font.getTrimmedGlyph(ch);
+    }
+    return font.getGlyph(ch);
+  }
+}
+/*
+ * JS Utilities interface
+ */
+var RetroUtils = {
+  charCodeAt: function(ch){
+    return ch.charCodeAt(0);
+  }
+};
+/*
+
+*/
+public abstract class RetroWidget{
+
+  // force access from getter so that the appropriate parent
+  // can be returned.
+  private RetroWidget parent;
+  //protected RetroWidget defaultParent;
+  protected int x, y, w, h;
+  
+  protected boolean visible = true;
+  protected boolean debugDraw = false;
+  
+  public RetroWidget(){
+    x = y = 0;
+    w = h = 0;
+    visible = true;
+    parent = null;
+    debugDraw = false;
+  }
+  
+  public RetroWidget getParent(){
+    if(parent != null){
+      return parent;
+    }
+    return new RetroPanel(0, 0, width, height);
+  }
+  
+  public void setVisible(boolean v){
+    visible = v;
+  }
+  
+  public boolean getVisible(){
+    return visible;
+  }
+    
+  public void setParent(RetroWidget widget){
+    parent = widget;
+    //defaultParent = null;
+  }
+  
+  public int getWidth(){
+    return w;
+  }
+  
+  public int getHeight(){
+    return h;
+  }
+
+  public void setPosition(int x, int y){
+    this.x = x;
+    this.y = y;
+  }
+  
+  public void setDebug(boolean debugOn){
+    debugDraw = debugOn;
+  }
+  
+  public abstract void draw();
+}
+/*
     If an asteroid collides with the player's ship, the user is
     immediately killed.
 */
@@ -75,12 +696,18 @@ public class Asteroid extends Sprite{
     if(isDestroyed()){
       return;
     }
+
     
     pushMatrix();
     translate(position.x, position.y);
     scale(scaleSize/img.width, scaleSize/img.height);
     rotate(rotation);
+    
+    pushStyle();
+    imageMode(CENTER);
     image(img, 0, 0);
+    popStyle();
+    
     popMatrix();
     
     if(debugOn){
@@ -405,7 +1032,7 @@ function SoundManager(){
   };
 }
 /*
-  @pjs globalKeyEvents="true"; preload="data/asteroid.png";
+  @pjs globalKeyEvents="true"; preload="data/asteroid.png, data/fonts/asteroids-large-font.png, data/fonts/small-font.png";
 */
  
 // Andor Salga
@@ -427,6 +1054,11 @@ ArrayList <Sprite> asteroids;
 ArrayList <Sprite> bullets;
 ArrayList <Sprite> particleSystems;
 
+RetroFont fontSmall;
+RetroFont largeFont;
+RetroLabel copyright;
+RetroLabel currentScore;
+
 Timer timer;
 
 boolean gameOver = false;
@@ -446,7 +1078,21 @@ void setup() {
   // get a nice pixelated look
   noSmooth();
 
-  resetGame();  
+  resetGame();
+
+  fontSmall = new RetroFont("data/fonts/small-font.png", 4, 4, 1);
+  largeFont = new RetroFont("data/fonts/asteroids-large-font.png", 6, 7, 1);
+
+  copyright = new RetroLabel(fontSmall);
+  copyright.setHorizontalSpacing(1);
+  copyright.pixelsFromTop(height-40);
+  copyright.setHorizontalTrimming(true);
+
+  // We don't want the score bouncing around, so leave the trimming off.
+  currentScore = new RetroLabel(largeFont);
+  //currentScore.setHorizontalSpacing(1);
+  //currentScore.setHorizontalTrimming(true);
+  currentScore.pixelsFromTopLeft(10, 10);
 
   // 
   soundManager = new SoundManager(this);
@@ -479,7 +1125,9 @@ void draw() {
   update();
   
   background(0);
-  
+  copyright.setText("2014 ANDOR INC");
+  currentScore.setText(prependStringWithString("" + score, "0", 8));
+
   // Not strictly requires for Processing, but
   // a bug in pjs requires this line here.
   resetMatrix();
@@ -497,11 +1145,17 @@ void draw() {
     resetMatrix();
     
     // SCORE
-    pushStyle();
+    /*pushStyle();
     fill(255);
     textAlign(CENTER);
+    popStyle();*/
 
-    text(prependStringWithString("" + score, "0", 8), width/2, 50);
+    pushStyle();
+    pushMatrix();
+    copyright.draw();
+    scale(2);
+    currentScore.draw();
+    popMatrix();
     popStyle();
   }else{
     pushStyle();
@@ -509,6 +1163,13 @@ void draw() {
     fill(255);
     text("Game Over", width/2, height/2);
     popStyle();
+  }
+
+  // Add scanlines for retro look
+  stroke(64, 128);
+  strokeWeight(1);
+  for(int i = 0; i < height; i += 2 ){
+    line(0, i, width, i);
   }
 }
 
@@ -909,7 +1570,6 @@ public static String prependStringWithString(String baseString, String prefix, i
   
   return baseString;
 }
-
 /*
     Small particle system is created when some of the sprites
     are destroyed.
