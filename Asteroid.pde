@@ -75,12 +75,18 @@ public class Asteroid extends Sprite{
     if(isDestroyed()){
       return;
     }
+
     
     pushMatrix();
     translate(position.x, position.y);
     scale(scaleSize/img.width, scaleSize/img.height);
     rotate(rotation);
+    
+    pushStyle();
+    imageMode(CENTER);
     image(img, 0, 0);
+    popStyle();
+    
     popMatrix();
     
     if(debugOn){

@@ -58,4 +58,3 @@ public static String prependStringWithString(String baseString, String prefix, i
   
   return baseString;
 }
-
