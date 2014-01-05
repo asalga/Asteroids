@@ -79,13 +79,14 @@ public class Ship extends Sprite{
   
   public void draw(){
 
-    pushMatrix();    
+    pushMatrix();
+
     translate(position.x, position.y);
     rotate(rotation);
     
     pushStyle();
     stroke(128);
-    strokeWeight(1);
+    strokeWeight(2);
 
     fill(0);
     
@@ -114,7 +115,8 @@ public class Ship extends Sprite{
       stroke(255, 0, 0);
       ellipse(0, 0, bounds.radius * 2, bounds.radius * 2);
     }
-    
+
+    popStyle();
     popMatrix();
   }
   

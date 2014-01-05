@@ -1,5 +1,5 @@
 /*
-  @pjs globalKeyEvents="true"; preload="data/images/asteroid.png, data/images/ship-life.png data/fonts/asteroids-large-font.png, data/fonts/small-font.png";
+  @pjs globalKeyEvents="true"; preload="data/images/asteroid.png, data/images/ship-life.png, data/fonts/asteroids-large-font.png, data/fonts/small-font.png";
 */
  
 // Andor Salga
@@ -120,10 +120,6 @@ void draw() {
   // Based on screenshots, the score starts off with two zeros
   currentScore.setText(prependStringWithString("" + score, "0", 2));
 
-  // Not strictly requires for Processing, but
-  // a bug in pjs requires this line here.
-  resetMatrix();
-
   if(!gameOver){
     ship.draw();
   }else{
@@ -132,14 +128,10 @@ void draw() {
   }
 
   starfield.draw();
-  
+    
   drawSpriteList(asteroids);
   drawSpriteList(bullets);
   drawSpriteList(particleSystems);
-  
-  // Not strictly requires for Processing, but
-  // a bug in pjs requires this line here.
-  resetMatrix();
 
   copyright.draw();
   
@@ -154,16 +146,16 @@ void draw() {
   }
   popMatrix();
 
-  // Add scanlines for retro look
+  // Add scanlines for a retro look
   stroke(16, 128);
   strokeWeight(1);
   for(int i = 0; i < height; i += 2 ){
     line(0, i, width, i);
   }
   
-  //for(int i = 0; i < width; i += 2 ){
-  //  line(i, 0, i, height);
-  //}
+  for(int i = 0; i < width; i += 2 ){
+    line(i, 0, i, height);
+  }
 }
 
 void generateAsteroids(){
