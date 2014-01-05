@@ -1,9 +1,19 @@
 Asteroids
 =========
 
-Andor Salga
+Asteroids clone for 1GAM.
 
-Asteroids clone
+Hyperspace will only place the player's ship in a safe area.
+
+Keys
+----
+A or left key - turn left
+D or right key - turn right
+W or up key - thrust
+S or down key - hyperspace
+
+M - toggle mute or audio
+Space - fire
 
 
 Building and Running
