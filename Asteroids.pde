@@ -35,6 +35,10 @@ Timer timer;
 boolean gameOver = false;
 boolean debugOn = false;
 
+// Original game has score roll over
+final boolean ALLOW_99_990_BUG = false;
+//final boolean ALLOW_LURKING = false;
+
 final int NUM_ASTEROIDS = 10;
 int numAsteroidsAlive = NUM_ASTEROIDS;
 
@@ -277,7 +281,7 @@ void testCollisions(){
         bullets.get(currBullet).destroy();
         asteroids.get(currAsteroid).destroy();
         numAsteroidsAlive--;
-        score += ASTEROID_POINTS;
+        increaseScore(ASTEROID_POINTS);
       }
     }
   }
@@ -293,6 +297,16 @@ void testCollisions(){
     else{
       respawn();
     }
+  }
+}
+
+/*
+*/
+void increaseScore(int amt){
+  score += amt;
+  
+  if(ALLOW_99_990_BUG && score >= 99990){
+    score = 0;
   }
 }
 

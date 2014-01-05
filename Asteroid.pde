@@ -4,6 +4,9 @@
 */
 public class Asteroid extends Sprite{
   
+  // Original version of the game didn't have rotating asteroids.
+  private static final boolean ALLOW_ROTATION = true;
+
   private float rotSpeed;
   private float scaleSize;
   private float size;
@@ -78,7 +81,10 @@ public class Asteroid extends Sprite{
     pushMatrix();
     translate(position.x, position.y);
     scale(scaleSize/asteroidImage.width, scaleSize/asteroidImage.height);
-    rotate(rotation);
+    
+    if(ALLOW_ROTATION){
+      rotate(rotation);
+    }
     
     pushStyle();
     imageMode(CENTER);
