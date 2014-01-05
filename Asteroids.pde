@@ -99,7 +99,16 @@ void setup() {
   Keyboard.lockKeys(new int[]{KEY_D});
 }
 
+/*
+  This is called at the start of the game and any time
+  the user gets a game over.
+*/
 void resetGame(){
+  gameOver = false;
+  score = 0;
+  
+  numLives = 3;
+
   timer = new Timer();
   starfield = new Starfield(100);
   ship = new Ship();
@@ -125,6 +134,10 @@ void draw() {
   }else{
     gameOverLabel.draw();
     pushEnterToContinueLabel.draw();
+
+    if(Keyboard.isKeyDown(KEY_ENTER)){
+      resetGame();
+    }
   }
 
   starfield.draw();
