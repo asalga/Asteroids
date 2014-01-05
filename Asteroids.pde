@@ -1,5 +1,5 @@
 /*
-  @pjs globalKeyEvents="true"; preload="data/asteroid.png, data/fonts/asteroids-large-font.png, data/fonts/small-font.png";
+  @pjs globalKeyEvents="true"; preload="data/images/asteroid.png, data/images/ship-life.png data/fonts/asteroids-large-font.png, data/fonts/small-font.png";
 */
  
 // Andor Salga
@@ -23,8 +23,12 @@ ArrayList <Sprite> particleSystems;
 
 RetroFont fontSmall;
 RetroFont largeFont;
+
 RetroLabel copyright;
 RetroLabel currentScore;
+RetroPanel scorePanel;
+RetroLabel pushEnterToContinueLabel;
+RetroLabel gameOverLabel;
 
 Timer timer;
 
@@ -37,6 +41,12 @@ int numAsteroidsAlive = NUM_ASTEROIDS;
 SoundManager soundManager;
 
 int score = 0;
+int numLives = 3;
+
+// 
+PImage shipLifeImage;
+PImage asteroidImage;
+PImage ufoImage;
 
 void setup() {
   size(400, 400);
@@ -48,7 +58,21 @@ void setup() {
   resetGame();
 
   fontSmall = new RetroFont("data/fonts/small-font.png", 4, 4, 1);
-  largeFont = new RetroFont("data/fonts/asteroids-large-font.png", 6, 7, 1);
+  largeFont = new RetroFont("data/fonts/asteroids-large-font.png", 12, 14, 2);
+
+  scorePanel = new RetroPanel();
+  scorePanel.setWidth(50);
+  scorePanel.pixelsFromTopLeft(10, 10);
+
+  gameOverLabel = new RetroLabel(largeFont);
+  gameOverLabel.setText("GAME OVER");
+  gameOverLabel.setHorizontalTrimming(true);
+  gameOverLabel.pixelsFromCenter(0,0);
+
+  pushEnterToContinueLabel = new RetroLabel(largeFont);
+  pushEnterToContinueLabel.setText("PRESS ENTER TO CONTINUE");
+  pushEnterToContinueLabel.setHorizontalTrimming(true);
+  pushEnterToContinueLabel.pixelsFromCenter(0, 40);
 
   copyright = new RetroLabel(fontSmall);
   copyright.setHorizontalSpacing(1);
@@ -59,8 +83,14 @@ void setup() {
   currentScore = new RetroLabel(largeFont);
   //currentScore.setHorizontalSpacing(1);
   //currentScore.setHorizontalTrimming(true);
-  currentScore.pixelsFromTopLeft(10, 10);
+  currentScore.pixelsFromRight(0);
+  scorePanel.addWidget(currentScore);
 
+  // Images!
+  shipLifeImage = loadImage("data/images/ship-life.png");
+  asteroidImage = loadImage("data/images/asteroid.png");
+  //ufoImage
+      
   // 
   soundManager = new SoundManager(this);
   soundManager.addSound("mame_fire");
@@ -86,38 +116,43 @@ void draw() {
   
   background(0);
   copyright.setText("2014 ANDOR INC");
-  currentScore.setText(prependStringWithString("" + score, "0", 8));
+  
+  // Based on screenshots, the score starts off with two zeros
+  currentScore.setText(prependStringWithString("" + score, "0", 2));
 
   // Not strictly requires for Processing, but
   // a bug in pjs requires this line here.
   resetMatrix();
 
   if(!gameOver){
-    starfield.draw();
-    
-    drawSpriteList(asteroids);
-    drawSpriteList(bullets);
-    drawSpriteList(particleSystems);
     ship.draw();
-    
-    // Not strictly requires for Processing, but
-    // a bug in pjs requires this line here.
-    resetMatrix();
-
-    pushStyle();
-    pushMatrix();
-    copyright.draw();
-    scale(2);
-    currentScore.draw();
-    popMatrix();
-    popStyle();
   }else{
-    pushStyle();
-    textAlign(CENTER, CENTER);
-    fill(255);
-    text("Game Over", width/2, height/2);
-    popStyle();
+    gameOverLabel.draw();
+    pushEnterToContinueLabel.draw();
   }
+
+  starfield.draw();
+  
+  drawSpriteList(asteroids);
+  drawSpriteList(bullets);
+  drawSpriteList(particleSystems);
+  
+  // Not strictly requires for Processing, but
+  // a bug in pjs requires this line here.
+  resetMatrix();
+
+  copyright.draw();
+  
+  scorePanel.draw();
+
+  // Draw the small player ships that represent player lives
+  // Lives are removed from left to right, so draw from right to left.
+  pushMatrix();
+  scale(2);
+  for(int lives = 0; lives < numLives; lives++){
+    image(shipLifeImage, 50 - (lives * (shipLifeImage.width+2)), 20);//, width, height);
+  }
+  popMatrix();
 
   // Add scanlines for retro look
   stroke(16, 128);
@@ -169,15 +204,32 @@ void createParticleSystem(PVector pos){
   psys.emit(15);
 }
 
+/*
+*/
+void loadNextLevel(){
+  //timer = new Timer();
+  //starfield = new Starfield(100);
+  ship = new Ship();
+
+  // Init sprites
+  generateAsteroids();
+  numAsteroidsAlive = asteroids.size();
+  //bullets = new ArrayList<Sprite>();
+  particleSystems = new ArrayList<Sprite>();
+}
+
+void respawn(){
+  ship = new Ship();
+}
+
 void update(){
   timer.tick();
   float deltaTime = timer.getDeltaSec();
 
   debugOn = Keyboard.isKeyDown(KEY_D);  
-
-  if(ship.isDestroyed() || numAsteroidsAlive == 0){
-    endGame();
-    return;
+  
+  if(numAsteroidsAlive == 0){
+    loadNextLevel();
   }
 
   if(Keyboard.isKeyDown(KEY_SPACE)){
@@ -187,9 +239,11 @@ void update(){
   updateSpriteList(asteroids, deltaTime);
   updateSpriteList(bullets, deltaTime);
   updateSpriteList(particleSystems, deltaTime);  
-  ship.update(deltaTime);
-
-  testCollisions();
+  
+  if(!gameOver){
+    ship.update(deltaTime);
+    testCollisions();
+  }
 }
 
 void updateSpriteList(ArrayList<Sprite> spriteList, float deltaTime){
@@ -224,8 +278,16 @@ void testCollisions(){
   }
   
   // Test collision against player's ship
+  // Prevent destroying it if already destroyed
   if(checkShipAsteroidCollision() != -1 && ship.isDestroyed() == false){
-    endGame();
+    numLives--;
+
+    if(numLives == 0){
+      endGame();
+    }
+    else{
+      respawn();
+    }
   }
 }
 
@@ -264,8 +326,8 @@ void endGame(){
     return;
   }
 
-  resetGame();
-  //gameOver = true;
+  //resetGame();
+  gameOver = true;
 }
 
 void keyReleased(){

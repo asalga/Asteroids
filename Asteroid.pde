@@ -5,7 +5,6 @@
 public class Asteroid extends Sprite{
   
   private float rotSpeed;
-  private PImage img;
   private float scaleSize;
   private float size;
   
@@ -14,7 +13,6 @@ public class Asteroid extends Sprite{
     setSize(1.0);
 
     rotSpeed = random(-.5, .5);
-    img = loadImage("data/asteroid.png");  
     
     float randVel = 10;
     
@@ -79,12 +77,12 @@ public class Asteroid extends Sprite{
     
     pushMatrix();
     translate(position.x, position.y);
-    scale(scaleSize/img.width, scaleSize/img.height);
+    scale(scaleSize/asteroidImage.width, scaleSize/asteroidImage.height);
     rotate(rotation);
     
     pushStyle();
     imageMode(CENTER);
-    image(img, 0, 0);
+    image(asteroidImage, 0, 0);
     popStyle();
     
     popMatrix();
