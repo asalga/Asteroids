@@ -2,7 +2,6 @@
   @pjs globalKeyEvents="true"; preload="data/images/asteroid.png, data/images/ship-life.png, data/fonts/asteroids-large-font.png, data/fonts/small-font.png";
 */
  
- 
 // Andor Salga
 // A clone of Asteroids
 // November 2014
