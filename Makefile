@@ -4,7 +4,7 @@
 build: minify
 
 minify:
-	cat RetroPanel.pde RetroFont.pde RetroLabel.pde RetroUtils.js RetroWidget.pde \
-		Asteroid.pde BoundingCircle.pde Bullet.pde Ship.pde SoundManager.js Asteroids.pde \
+	cat Asteroids.pde RetroPanel.pde RetroFont.pde RetroLabel.pde RetroUtils.js RetroWidget.pde \
+		Asteroid.pde BoundingCircle.pde Bullet.pde Ship.pde SoundManager.js  \
 		Sprite.pde Starfield.pde Timer.pde Utils.pde ParticleSystem.pde Keyboard.pde > build/build.js
 	
