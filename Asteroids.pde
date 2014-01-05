@@ -66,7 +66,7 @@ void setup() {
 
   scorePanel = new RetroPanel();
   scorePanel.setWidth(50);
-  scorePanel.pixelsFromTopLeft(10, 10);
+  scorePanel.pixelsFromTopLeft(15, 30);
 
   gameOverLabel = new RetroLabel(largeFont);
   gameOverLabel.setText("GAME OVER");
@@ -100,7 +100,7 @@ void setup() {
   soundManager.addSound("mame_fire");
   soundManager.addSound("mame_explode1");
   
-  Keyboard.lockKeys(new int[]{KEY_D});
+  Keyboard.lockKeys(new int[]{KEY_B, KEY_M});
 }
 
 /*
@@ -157,9 +157,9 @@ void draw() {
   // Draw the small player ships that represent player lives
   // Lives are removed from left to right, so draw from right to left.
   pushMatrix();
-  scale(2);
+  scale(1);
   for(int lives = 0; lives < numLives; lives++){
-    image(shipLifeImage, 50 - (lives * (shipLifeImage.width+2)), 20);//, width, height);
+    image(shipLifeImage, 100 - (lives * (shipLifeImage.width+1)), 30);//, width, height);
   }
   popMatrix();
 
@@ -235,7 +235,8 @@ void update(){
   timer.tick();
   float deltaTime = timer.getDeltaSec();
 
-  debugOn = Keyboard.isKeyDown(KEY_D);  
+  // B for show bounding circles
+  debugOn = Keyboard.isKeyDown(KEY_B);  
   
   if(numAsteroidsAlive == 0){
     loadNextLevel();
@@ -354,7 +355,9 @@ void keyReleased(){
 }
 
 void keyPressed() {
-  Keyboard.setKeyDown(keyCode, true);  
+  Keyboard.setKeyDown(keyCode, true);
+
+  soundManager.setMute(Keyboard.isKeyDown(KEY_M));  
 }
 
 /**

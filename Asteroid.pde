@@ -98,6 +98,7 @@ public class Asteroid extends Sprite{
       translate(position.x, position.y);
       pushStyle();
       stroke(255, 0, 0);
+      noFill();
       ellipse(0, 0, scaleSize, scaleSize);
       popStyle();
       popMatrix();

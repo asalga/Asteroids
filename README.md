@@ -5,8 +5,8 @@ Asteroids clone for 1GAM.
 
 Hyperspace will only place the player's ship in a safe area.
 
-Keys
-----
+Default Keys
+------------
 A or left key - turn left<br />
 D or right key - turn right<br />
 W or up key - thrust<br />
@@ -14,6 +14,8 @@ S or down key - hyperspace<br />
 
 M - toggle mute or audio<br />
 Space - fire<br />
+
+B - show bounding areas<br />
 
 
 Building and Running

@@ -130,20 +130,20 @@ public class Ship extends Sprite{
       teleport();
     }
 
-    if(Keyboard.isKeyDown(KEY_LEFT)){ // && ((Keyboard.isKeyDown(KEY_UP) || ALLOW_ROT_IN_PLACE))){
+    if(Keyboard.isKeyDown(KEY_LEFT) || Keyboard.isKeyDown(KEY_A)){ // && ((Keyboard.isKeyDown(KEY_UP) || ALLOW_ROT_IN_PLACE))){
       rotation -= ROT_SPEED * deltaTime;
     }
     
-    if(Keyboard.isKeyDown(KEY_RIGHT)){ // && (Keyboard.isKeyDown(KEY_UP) || ALLOW_ROT_IN_PLACE)){
+    if(Keyboard.isKeyDown(KEY_RIGHT) || Keyboard.isKeyDown(KEY_D)){ // && (Keyboard.isKeyDown(KEY_UP) || ALLOW_ROT_IN_PLACE)){
       rotation += ROT_SPEED * deltaTime;
     }
     
     // slow down faster than speeding up
     // to help player avoid astroid collision.
-    if(Keyboard.isKeyDown(KEY_DOWN)){
+    if(Keyboard.isKeyDown(KEY_DOWN) || Keyboard.isKeyDown(KEY_S)){
       accel -= 100;
     }
-    else if(Keyboard.isKeyDown(KEY_UP)){
+    else if(Keyboard.isKeyDown(KEY_UP) || Keyboard.isKeyDown(KEY_W)){
       accel += 50;
       accel = min(accel, 10000);
       thrustTimer.tick();

@@ -79,7 +79,7 @@ public class ParticleSystem extends Sprite{
       pushStyle();
       fill(255, opacity);
       noStroke();
-      ellipse(position.x, position.y, 1, 1);
+      ellipse(position.x, position.y, 2, 2);
       popStyle();
     }
   }
