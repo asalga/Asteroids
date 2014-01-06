@@ -103,8 +103,9 @@ void setup() {
   // 
   soundManager = new SoundManager(this);
   soundManager.addSound("mame_fire");
+  soundManager.addSound("mame_explode0");
   soundManager.addSound("mame_explode1");
-  soundManager.setMute(true);
+  soundManager.addSound("mame_explode2");
   
   Keyboard.lockKeys(new int[]{KEY_B, KEY_M});
 }
