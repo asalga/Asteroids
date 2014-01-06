@@ -116,7 +116,7 @@ public class SoundManager{
     int index = -1;
 
     for(int i = 0; i < queuedSoundNames.size(); i++){
-      if(soundName == queuedSoundNames.get(i)){
+      if(soundName.equals(queuedSoundNames.get(i))){
         index = i;
         break;
       }

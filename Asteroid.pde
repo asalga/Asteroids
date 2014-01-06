@@ -70,7 +70,7 @@ public class Asteroid extends Sprite{
   public void destroy(){
     super.destroy();
 
-    //soundManager.playSound("mame_explode" + size);
+    soundManager.playSound("mame_explode" + size);
     
     createParticleSystem(position);
 
@@ -136,7 +136,7 @@ public class Asteroid extends Sprite{
     imageMode(CENTER);
     
     stroke(255);
-    strokeWeight(4);
+    strokeWeight(2);
 
     scale(bounds.radius/32);
 
