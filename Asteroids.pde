@@ -71,7 +71,7 @@ void setup() {
 
   scorePanel = new RetroPanel();
   scorePanel.setWidth(50);
-  scorePanel.pixelsFromTopLeft(15, 30);
+  scorePanel.pixelsFromTopLeft(15, 50);
 
   gameOverLabel = new RetroLabel(largeFont);
   gameOverLabel.setText("GAME OVER");
@@ -166,7 +166,7 @@ void draw() {
   pushMatrix();
   scale(1);
   for(int lives = 0; lives < numLives; lives++){
-    image(shipLifeImage, 100 - (lives * (shipLifeImage.width+1)), 30);//, width, height);
+    image(shipLifeImage, 100 - (lives * (shipLifeImage.width+1)), 34);//, width, height);
   }
   popMatrix();
 
@@ -316,12 +316,12 @@ void testCollisions(){
   if(checkoutAsteroidCollisionAgainstBounds(ship.getBoundingCircle()) != -1 && ship.isDestroyed() == false){
     numLives--;
 
+    ship.destroy();
+
     if(numLives == 0){
       endGame();
     }
     else{
-      ship.destroy();
-      ///respawn();
       waitingToRespawn = true;
     }
   }

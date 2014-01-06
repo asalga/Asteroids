@@ -135,11 +135,11 @@ public class Ship extends Sprite{
       teleport();
     }
 
-    if(Keyboard.isKeyDown(KEY_LEFT) || Keyboard.isKeyDown(KEY_A)){ // && ((Keyboard.isKeyDown(KEY_UP) || ALLOW_ROT_IN_PLACE))){
+    if(Keyboard.isKeyDown(KEY_LEFT) || Keyboard.isKeyDown(KEY_A)){
       rotation -= ROT_SPEED * deltaTime;
     }
     
-    if(Keyboard.isKeyDown(KEY_RIGHT) || Keyboard.isKeyDown(KEY_D)){ // && (Keyboard.isKeyDown(KEY_UP) || ALLOW_ROT_IN_PLACE)){
+    if(Keyboard.isKeyDown(KEY_RIGHT) || Keyboard.isKeyDown(KEY_D)){
       rotation += ROT_SPEED * deltaTime;
     }
     
