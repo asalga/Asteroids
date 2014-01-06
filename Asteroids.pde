@@ -8,12 +8,12 @@
 
 import ddf.minim.*;
 
-//final int ASTEROID_POINTS = 100;
-
 final float BULLET_SPEED = 200.0f;
-final boolean GOD_MODE = false;
 
-PFont font;
+// Original game has score roll over
+final boolean ALLOW_99_990_BUG = false;
+
+final boolean GOD_MODE = false;
 
 Starfield starfield;
 Ship ship;
@@ -35,14 +35,8 @@ Timer timer;
 boolean gameOver = false;
 boolean debugOn = false;
 
-// Original game has score roll over
-final boolean ALLOW_99_990_BUG = false;
-//final boolean ALLOW_LURKING = false;
-
 final int NUM_ASTEROIDS = 10;
 int numAsteroidsAlive = NUM_ASTEROIDS;
-
-
 
 SoundManager soundManager;
 
@@ -97,8 +91,8 @@ void setup() {
 
   // Images!
   shipLifeImage = loadImage("data/images/ship-life.png");
-  asteroidImage = loadImage("data/images/asteroid.png");
-  //ufoImage
+  // asteroidImage = loadImage("data/images/asteroid.png");
+  // ufoImage
       
   // 
   soundManager = new SoundManager(this);
@@ -107,6 +101,7 @@ void setup() {
   soundManager.addSound("mame_explode1");
   soundManager.addSound("mame_explode2");
   
+  // Toggle keys for showing Bounds and Mute.
   Keyboard.lockKeys(new int[]{KEY_B, KEY_M});
 }
 
@@ -182,6 +177,8 @@ void draw() {
   }
 }
 
+/*
+*/
 void generateAsteroids(){
   asteroids = new ArrayList<Sprite>(0);
   
@@ -343,7 +340,8 @@ void increaseScore(int amt){
 
   Made this into a function since Ship needs to use it for the teleport method.
 
-
+  We also use it when trying to respawn the player. There should be no collision when
+  the player is respawned.
 */
 public int checkoutAsteroidCollisionAgainstBounds(BoundingCircle bounds){
   for(int currAsteroid = 0; currAsteroid < asteroids.size(); currAsteroid++){
@@ -355,7 +353,6 @@ public int checkoutAsteroidCollisionAgainstBounds(BoundingCircle bounds){
     }
     
     BoundingCircle asteroidBounds = a.getBoundingCircle();
-    //BoundingCircle shipBounds = ship.getBoundingCircle();
     
     if(testCircleCollision(asteroidBounds, bounds)){
       return currAsteroid;

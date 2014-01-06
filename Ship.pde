@@ -3,9 +3,8 @@
 */
 public class Ship extends Sprite{
   
-  private float accel;
-  
   private final float ROT_SPEED = 5.0f;
+  private final float DRAG = 0.5f;
 
   private Timer thrustTimer;
   private Timer shootingTimer;
@@ -13,8 +12,11 @@ public class Ship extends Sprite{
 
   public Ship(){
     rotation = 0.0f;
+    
     position = new PVector(width/2, height/2);
-    velocity = new PVector();
+    velocity = new PVector(0, 0);
+    acceleration = new PVector(0, 0);
+
     thrustTimer = new Timer();
     shootingTimer = new Timer();
     teleportTimer = new Timer();
@@ -131,7 +133,9 @@ public class Ship extends Sprite{
       return;
     }
 
-    if(Keyboard.isKeyDown(KEY_CTRL) || Keyboard.isKeyDown(KEY_DOWN)){
+    // Some versions have teleporting others have a shield
+    // TODO: add shield option
+    if(Keyboard.isKeyDown(KEY_DOWN) || Keyboard.isKeyDown(KEY_S)){
       teleport();
     }
 
@@ -142,31 +146,29 @@ public class Ship extends Sprite{
     if(Keyboard.isKeyDown(KEY_RIGHT) || Keyboard.isKeyDown(KEY_D)){
       rotation += ROT_SPEED * deltaTime;
     }
-    
-    // slow down faster than speeding up
-    // to help player avoid astroid collision.
-    if(Keyboard.isKeyDown(KEY_DOWN) || Keyboard.isKeyDown(KEY_S)){
-      accel -= 100;
-    }
-    else if(Keyboard.isKeyDown(KEY_UP) || Keyboard.isKeyDown(KEY_W)){
-      accel += 50;
-      accel = min(accel, 10000);
+
+    if(Keyboard.isKeyDown(KEY_UP) || Keyboard.isKeyDown(KEY_W)){
+      acceleration.x = cos(rotation) * 50.0f;
+      acceleration.y = sin(rotation) * 50.0f;
+
       thrustTimer.tick();
       if(thrustTimer.getTotalTime() > 0.1){
         thrustTimer.reset();
       }
     }
     else{
-      accel -= 50;
+      acceleration.x = 0;
+      acceleration.y = 0;
     }
     
-    accel = max(accel, 0);
+    velocity.x += acceleration.x * deltaTime;
+    velocity.y += acceleration.y * deltaTime;
+
+    velocity.x = (1.0 - DRAG * deltaTime) * velocity.x;
+    velocity.y = (1.0 - DRAG * deltaTime) * velocity.y;
     
-    velocity.x = accel * deltaTime;
-    velocity.y = accel * deltaTime;
-    
-    position.x += cos(rotation) * deltaTime * velocity.x;
-    position.y += sin(rotation) * deltaTime * velocity.y;
+    position.x += velocity.x * deltaTime;
+    position.y += velocity.y * deltaTime;
     
     updateBounds();
     moveIfPastBounds();

@@ -5,8 +5,10 @@ public abstract class Sprite{
 
   private boolean dead;  
   
-  protected PVector position;
+  protected PVector acceleration;
   protected PVector velocity;
+  protected PVector position;
+
   protected float rotation;
   
   protected BoundingCircle bounds;
