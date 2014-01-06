@@ -8,12 +8,12 @@
 
 import ddf.minim.*;
 
-//final int ASTEROID_POINTS = 100;
-
 final float BULLET_SPEED = 200.0f;
-final boolean GOD_MODE = false;
 
-PFont font;
+// Original game has score roll over
+final boolean ALLOW_99_990_BUG = false;
+
+final boolean GOD_MODE = false;
 
 Starfield starfield;
 Ship ship;
@@ -35,14 +35,8 @@ Timer timer;
 boolean gameOver = false;
 boolean debugOn = false;
 
-// Original game has score roll over
-final boolean ALLOW_99_990_BUG = false;
-//final boolean ALLOW_LURKING = false;
-
 final int NUM_ASTEROIDS = 10;
 int numAsteroidsAlive = NUM_ASTEROIDS;
-
-
 
 SoundManager soundManager;
 
@@ -71,7 +65,7 @@ void setup() {
 
   scorePanel = new RetroPanel();
   scorePanel.setWidth(50);
-  scorePanel.pixelsFromTopLeft(15, 30);
+  scorePanel.pixelsFromTopLeft(15, 50);
 
   gameOverLabel = new RetroLabel(largeFont);
   gameOverLabel.setText("GAME OVER");
@@ -97,15 +91,17 @@ void setup() {
 
   // Images!
   shipLifeImage = loadImage("data/images/ship-life.png");
-  asteroidImage = loadImage("data/images/asteroid.png");
-  //ufoImage
+  // asteroidImage = loadImage("data/images/asteroid.png");
+  // ufoImage
       
   // 
   soundManager = new SoundManager(this);
   soundManager.addSound("mame_fire");
+  soundManager.addSound("mame_explode0");
   soundManager.addSound("mame_explode1");
-  soundManager.setMute(true);
+  soundManager.addSound("mame_explode2");
   
+  // Toggle keys for showing Bounds and Mute.
   Keyboard.lockKeys(new int[]{KEY_B, KEY_M});
 }
 
@@ -165,7 +161,7 @@ void draw() {
   pushMatrix();
   scale(1);
   for(int lives = 0; lives < numLives; lives++){
-    image(shipLifeImage, 100 - (lives * (shipLifeImage.width+1)), 30);//, width, height);
+    image(shipLifeImage, 100 - (lives * (shipLifeImage.width+1)), 34);//, width, height);
   }
   popMatrix();
 
@@ -181,6 +177,8 @@ void draw() {
   }
 }
 
+/*
+*/
 void generateAsteroids(){
   asteroids = new ArrayList<Sprite>(0);
   
@@ -315,12 +313,12 @@ void testCollisions(){
   if(checkoutAsteroidCollisionAgainstBounds(ship.getBoundingCircle()) != -1 && ship.isDestroyed() == false){
     numLives--;
 
+    ship.destroy();
+
     if(numLives == 0){
       endGame();
     }
     else{
-      ship.destroy();
-      ///respawn();
       waitingToRespawn = true;
     }
   }
@@ -342,7 +340,8 @@ void increaseScore(int amt){
 
   Made this into a function since Ship needs to use it for the teleport method.
 
-
+  We also use it when trying to respawn the player. There should be no collision when
+  the player is respawned.
 */
 public int checkoutAsteroidCollisionAgainstBounds(BoundingCircle bounds){
   for(int currAsteroid = 0; currAsteroid < asteroids.size(); currAsteroid++){
@@ -354,7 +353,6 @@ public int checkoutAsteroidCollisionAgainstBounds(BoundingCircle bounds){
     }
     
     BoundingCircle asteroidBounds = a.getBoundingCircle();
-    //BoundingCircle shipBounds = ship.getBoundingCircle();
     
     if(testCircleCollision(asteroidBounds, bounds)){
       return currAsteroid;
@@ -1106,7 +1104,7 @@ public class Asteroid extends Sprite{
   public void destroy(){
     super.destroy();
 
-    //soundManager.playSound("mame_explode" + size);
+    soundManager.playSound("mame_explode" + size);
     
     createParticleSystem(position);
 
@@ -1172,7 +1170,7 @@ public class Asteroid extends Sprite{
     imageMode(CENTER);
     
     stroke(255);
-    strokeWeight(4);
+    strokeWeight(2);
 
     scale(bounds.radius/32);
 
@@ -1271,9 +1269,8 @@ public class Bullet extends Sprite{
 */
 public class Ship extends Sprite{
   
-  private float accel;
-  
   private final float ROT_SPEED = 5.0f;
+  private final float DRAG = 0.5f;
 
   private Timer thrustTimer;
   private Timer shootingTimer;
@@ -1281,8 +1278,11 @@ public class Ship extends Sprite{
 
   public Ship(){
     rotation = 0.0f;
+    
     position = new PVector(width/2, height/2);
-    velocity = new PVector();
+    velocity = new PVector(0, 0);
+    acceleration = new PVector(0, 0);
+
     thrustTimer = new Timer();
     shootingTimer = new Timer();
     teleportTimer = new Timer();
@@ -1399,42 +1399,42 @@ public class Ship extends Sprite{
       return;
     }
 
-    if(Keyboard.isKeyDown(KEY_CTRL) || Keyboard.isKeyDown(KEY_DOWN)){
+    // Some versions have teleporting others have a shield
+    // TODO: add shield option
+    if(Keyboard.isKeyDown(KEY_DOWN) || Keyboard.isKeyDown(KEY_S)){
       teleport();
     }
 
-    if(Keyboard.isKeyDown(KEY_LEFT) || Keyboard.isKeyDown(KEY_A)){ // && ((Keyboard.isKeyDown(KEY_UP) || ALLOW_ROT_IN_PLACE))){
+    if(Keyboard.isKeyDown(KEY_LEFT) || Keyboard.isKeyDown(KEY_A)){
       rotation -= ROT_SPEED * deltaTime;
     }
     
-    if(Keyboard.isKeyDown(KEY_RIGHT) || Keyboard.isKeyDown(KEY_D)){ // && (Keyboard.isKeyDown(KEY_UP) || ALLOW_ROT_IN_PLACE)){
+    if(Keyboard.isKeyDown(KEY_RIGHT) || Keyboard.isKeyDown(KEY_D)){
       rotation += ROT_SPEED * deltaTime;
     }
-    
-    // slow down faster than speeding up
-    // to help player avoid astroid collision.
-    if(Keyboard.isKeyDown(KEY_DOWN) || Keyboard.isKeyDown(KEY_S)){
-      accel -= 100;
-    }
-    else if(Keyboard.isKeyDown(KEY_UP) || Keyboard.isKeyDown(KEY_W)){
-      accel += 50;
-      accel = min(accel, 10000);
+
+    if(Keyboard.isKeyDown(KEY_UP) || Keyboard.isKeyDown(KEY_W)){
+      acceleration.x = cos(rotation) * 50.0f;
+      acceleration.y = sin(rotation) * 50.0f;
+
       thrustTimer.tick();
       if(thrustTimer.getTotalTime() > 0.1){
         thrustTimer.reset();
       }
     }
     else{
-      accel -= 50;
+      acceleration.x = 0;
+      acceleration.y = 0;
     }
     
-    accel = max(accel, 0);
+    velocity.x += acceleration.x * deltaTime;
+    velocity.y += acceleration.y * deltaTime;
+
+    velocity.x = (1.0 - DRAG * deltaTime) * velocity.x;
+    velocity.y = (1.0 - DRAG * deltaTime) * velocity.y;
     
-    velocity.x = accel * deltaTime;
-    velocity.y = accel * deltaTime;
-    
-    position.x += cos(rotation) * deltaTime * velocity.x;
-    position.y += sin(rotation) * deltaTime * velocity.y;
+    position.x += velocity.x * deltaTime;
+    position.y += velocity.y * deltaTime;
     
     updateBounds();
     moveIfPastBounds();
@@ -1522,8 +1522,10 @@ public abstract class Sprite{
 
   private boolean dead;  
   
-  protected PVector position;
+  protected PVector acceleration;
   protected PVector velocity;
+  protected PVector position;
+
   protected float rotation;
   
   protected BoundingCircle bounds;
@@ -1824,7 +1826,7 @@ public class ParticleSystem extends Sprite{
       pushStyle();
       fill(255, opacity);
       noStroke();
-      ellipse(position.x, position.y, 2, 2);
+      ellipse(position.x, position.y, 4, 4);
       popStyle();
     }
   }
