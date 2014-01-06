@@ -6,7 +6,6 @@ public class Ship extends Sprite{
   private float accel;
   
   private final float ROT_SPEED = 5.0f;
-  private final boolean ALLOW_ROT_IN_PLACE = true;
 
   private Timer thrustTimer;
   private Timer shootingTimer;
@@ -57,7 +56,7 @@ public class Ship extends Sprite{
       position = new PVector(randX, randY);
       bounds.position = copyVector(position);
 
-    }while(checkShipAsteroidCollision() != -1);
+    }while(checkoutAsteroidCollisionAgainstBounds(bounds) != -1);
 
     bounds.radius /= 3;
   }
@@ -78,6 +77,9 @@ public class Ship extends Sprite{
   }
   
   public void draw(){
+    if(isDestroyed()){
+      return;
+    }
 
     pushMatrix();
 
@@ -85,9 +87,8 @@ public class Ship extends Sprite{
     rotate(rotation);
     
     pushStyle();
-    stroke(128);
-    strokeWeight(2);
-
+    stroke(255);
+    strokeWeight(3);
     fill(0);
     
     line(10, 0, -10, 5);
@@ -126,24 +127,28 @@ public class Ship extends Sprite{
     shootingTimer.tick();
     teleportTimer.tick();
 
-    if(Keyboard.isKeyDown(KEY_CTRL)){
+    if(isDestroyed()){
+      return;
+    }
+
+    if(Keyboard.isKeyDown(KEY_CTRL) || Keyboard.isKeyDown(KEY_DOWN)){
       teleport();
     }
 
-    if(Keyboard.isKeyDown(KEY_LEFT) && ((Keyboard.isKeyDown(KEY_UP) || ALLOW_ROT_IN_PLACE))){
+    if(Keyboard.isKeyDown(KEY_LEFT) || Keyboard.isKeyDown(KEY_A)){ // && ((Keyboard.isKeyDown(KEY_UP) || ALLOW_ROT_IN_PLACE))){
       rotation -= ROT_SPEED * deltaTime;
     }
     
-    if(Keyboard.isKeyDown(KEY_RIGHT) && (Keyboard.isKeyDown(KEY_UP) || ALLOW_ROT_IN_PLACE)){
+    if(Keyboard.isKeyDown(KEY_RIGHT) || Keyboard.isKeyDown(KEY_D)){ // && (Keyboard.isKeyDown(KEY_UP) || ALLOW_ROT_IN_PLACE)){
       rotation += ROT_SPEED * deltaTime;
     }
     
     // slow down faster than speeding up
     // to help player avoid astroid collision.
-    if(Keyboard.isKeyDown(KEY_DOWN)){ //downKeyDown){
+    if(Keyboard.isKeyDown(KEY_DOWN) || Keyboard.isKeyDown(KEY_S)){
       accel -= 100;
     }
-    else if(Keyboard.isKeyDown(KEY_UP)){
+    else if(Keyboard.isKeyDown(KEY_UP) || Keyboard.isKeyDown(KEY_W)){
       accel += 50;
       accel = min(accel, 10000);
       thrustTimer.tick();

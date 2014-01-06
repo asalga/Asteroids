@@ -1,5 +1,7 @@
 /*
-    see processing.js wrapper
+    This class uses Minim. When using Processing.js, we don't have 
+    access to Minim so we have an equivalent class, SoundManager.js
+    that handles audio.
 */
 public class SoundManager{
   boolean muted = false;
@@ -57,15 +59,14 @@ public class SoundManager{
           players.get(i).mute();
         }
         else{
-         players.get(i).unmute(); 
+          players.get(i).unmute(); 
         }
       }
     }
   }
   
-  public void init(){
-  }
-  
+  /*
+  */
   public SoundManager(PApplet applet){
     minim = new Minim(applet);
 
@@ -73,6 +74,8 @@ public class SoundManager{
     queuedSoundNames = new ArrayList<String>();
   }
   
+  /*
+  */
   public void setMute(boolean isMuted){
     muted = isMuted;
 
@@ -81,28 +84,35 @@ public class SoundManager{
     }
   }
   
+  /*
+  */
   public boolean isMuted(){
     return muted;
   }
-  
-  /*
-    
-  */
-  private void play(AudioPlayer player){
+
+  /*private void play(AudioPlayer player){
     if(muted || player.isPlaying()){
       return;
     }
     
     player.play();
     player.rewind();
-  }
+  }*/
   
+  /*
+  */
   public void addSound(String soundName){
     queuedSounds.add(new PlayerQueue("audio/" + soundName + ".wav"));
     queuedSoundNames.add(soundName);
   }
 
+  /*
+  */
   public void playSound(String soundName){
+    if(muted){
+      return;
+    }
+
     int index = -1;
 
     for(int i = 0; i < queuedSoundNames.size(); i++){

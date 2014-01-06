@@ -8,7 +8,7 @@
 
 import ddf.minim.*;
 
-final int ASTEROID_POINTS = 100;
+//final int ASTEROID_POINTS = 100;
 
 final float BULLET_SPEED = 200.0f;
 final boolean GOD_MODE = false;
@@ -35,13 +35,22 @@ Timer timer;
 boolean gameOver = false;
 boolean debugOn = false;
 
+// Original game has score roll over
+final boolean ALLOW_99_990_BUG = false;
+//final boolean ALLOW_LURKING = false;
+
 final int NUM_ASTEROIDS = 10;
 int numAsteroidsAlive = NUM_ASTEROIDS;
 
+
+
 SoundManager soundManager;
 
+int level = 1;
 int score = 0;
 int numLives = 3;
+
+boolean waitingToRespawn = false;
 
 // 
 PImage shipLifeImage;
@@ -62,7 +71,7 @@ void setup() {
 
   scorePanel = new RetroPanel();
   scorePanel.setWidth(50);
-  scorePanel.pixelsFromTopLeft(10, 10);
+  scorePanel.pixelsFromTopLeft(15, 30);
 
   gameOverLabel = new RetroLabel(largeFont);
   gameOverLabel.setText("GAME OVER");
@@ -95,11 +104,21 @@ void setup() {
   soundManager = new SoundManager(this);
   soundManager.addSound("mame_fire");
   soundManager.addSound("mame_explode1");
+  soundManager.setMute(true);
   
-  Keyboard.lockKeys(new int[]{KEY_D});
+  Keyboard.lockKeys(new int[]{KEY_B, KEY_M});
 }
 
+/*
+  This is called at the start of the game and any time
+  the user gets a game over.
+*/
 void resetGame(){
+  gameOver = false;
+  score = 0;
+  
+  numLives = 3;
+
   timer = new Timer();
   starfield = new Starfield(100);
   ship = new Ship();
@@ -125,6 +144,10 @@ void draw() {
   }else{
     gameOverLabel.draw();
     pushEnterToContinueLabel.draw();
+
+    if(Keyboard.isKeyDown(KEY_ENTER)){
+      resetGame();
+    }
   }
 
   starfield.draw();
@@ -140,9 +163,9 @@ void draw() {
   // Draw the small player ships that represent player lives
   // Lives are removed from left to right, so draw from right to left.
   pushMatrix();
-  scale(2);
+  scale(1);
   for(int lives = 0; lives < numLives; lives++){
-    image(shipLifeImage, 50 - (lives * (shipLifeImage.width+2)), 20);//, width, height);
+    image(shipLifeImage, 100 - (lives * (shipLifeImage.width+1)), 30);//, width, height);
   }
   popMatrix();
 
@@ -177,7 +200,7 @@ void generateAsteroids(){
     pvec.y += height/2;
 
     a.position = pvec;
-    a.setSize(1);
+    //a.setSize(2);
     
     asteroids.add(a);
   }  
@@ -201,6 +224,7 @@ void createParticleSystem(PVector pos){
 void loadNextLevel(){
   //timer = new Timer();
   //starfield = new Starfield(100);
+  level++;
   ship = new Ship();
 
   // Init sprites
@@ -211,6 +235,7 @@ void loadNextLevel(){
 }
 
 void respawn(){
+  waitingToRespawn = false;
   ship = new Ship();
 }
 
@@ -218,7 +243,8 @@ void update(){
   timer.tick();
   float deltaTime = timer.getDeltaSec();
 
-  debugOn = Keyboard.isKeyDown(KEY_D);  
+  // B for show bounding circles
+  debugOn = Keyboard.isKeyDown(KEY_B);  
   
   if(numAsteroidsAlive == 0){
     loadNextLevel();
@@ -235,6 +261,19 @@ void update(){
   if(!gameOver){
     ship.update(deltaTime);
     testCollisions();
+  }
+
+  // Once there are no astroids
+  // TODO: add check for bullets from saucer
+  if(waitingToRespawn){
+    BoundingCircle b = new BoundingCircle();
+    b.position = new PVector(width/2, height/2);
+    b.radius = 30;
+
+    if(checkoutAsteroidCollisionAgainstBounds(b) == -1){
+      waitingToRespawn = false;
+      respawn();
+    }
   }
 }
 
@@ -260,26 +299,40 @@ void testCollisions(){
       BoundingCircle bulletBounds  = bullets.get(currBullet).getBoundingCircle();
       BoundingCircle asteroidBounds = asteroids.get(currAsteroid).getBoundingCircle();
       
-      if( testCircleCollision(bulletBounds, asteroidBounds)){
+      if(testCircleCollision(bulletBounds, asteroidBounds)){
         bullets.get(currBullet).destroy();
         asteroids.get(currAsteroid).destroy();
         numAsteroidsAlive--;
-        score += ASTEROID_POINTS;
+
+
+        increaseScore(((Asteroid)asteroids.get(currAsteroid)).getPoints());
       }
     }
   }
   
   // Test collision against player's ship
   // Prevent destroying it if already destroyed
-  if(checkShipAsteroidCollision() != -1 && ship.isDestroyed() == false){
+  if(checkoutAsteroidCollisionAgainstBounds(ship.getBoundingCircle()) != -1 && ship.isDestroyed() == false){
     numLives--;
 
     if(numLives == 0){
       endGame();
     }
     else{
-      respawn();
+      ship.destroy();
+      ///respawn();
+      waitingToRespawn = true;
     }
+  }
+}
+
+/*
+*/
+void increaseScore(int amt){
+  score += amt;
+  
+  if(ALLOW_99_990_BUG && score >= 99990){
+    score = 0;
   }
 }
 
@@ -288,8 +341,10 @@ void testCollisions(){
   of the asteroid that collided with the ship.
 
   Made this into a function since Ship needs to use it for the teleport method.
+
+
 */
-public int checkShipAsteroidCollision(){
+public int checkoutAsteroidCollisionAgainstBounds(BoundingCircle bounds){
   for(int currAsteroid = 0; currAsteroid < asteroids.size(); currAsteroid++){
     
     Asteroid a = (Asteroid)asteroids.get(currAsteroid);
@@ -299,9 +354,9 @@ public int checkShipAsteroidCollision(){
     }
     
     BoundingCircle asteroidBounds = a.getBoundingCircle();
-    BoundingCircle shipBounds = ship.getBoundingCircle();
+    //BoundingCircle shipBounds = ship.getBoundingCircle();
     
-    if(testCircleCollision(asteroidBounds, shipBounds)){
+    if(testCircleCollision(asteroidBounds, bounds)){
       return currAsteroid;
     }
   }
@@ -327,7 +382,11 @@ void keyReleased(){
 }
 
 void keyPressed() {
-  Keyboard.setKeyDown(keyCode, true);  
+  Keyboard.setKeyDown(keyCode, true);
+
+  if(Keyboard.isKeyDown(KEY_M)){
+    soundManager.setMute(Keyboard.isKeyDown(KEY_M));
+  }
 }
 
 /**
