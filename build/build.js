@@ -8,7 +8,7 @@
 
 import ddf.minim.*;
 
-final int ASTEROID_POINTS = 100;
+//final int ASTEROID_POINTS = 100;
 
 final float BULLET_SPEED = 200.0f;
 final boolean GOD_MODE = false;
@@ -35,13 +35,22 @@ Timer timer;
 boolean gameOver = false;
 boolean debugOn = false;
 
+// Original game has score roll over
+final boolean ALLOW_99_990_BUG = false;
+//final boolean ALLOW_LURKING = false;
+
 final int NUM_ASTEROIDS = 10;
 int numAsteroidsAlive = NUM_ASTEROIDS;
 
+
+
 SoundManager soundManager;
 
+int level = 1;
 int score = 0;
 int numLives = 3;
+
+boolean waitingToRespawn = false;
 
 // 
 PImage shipLifeImage;
@@ -62,7 +71,7 @@ void setup() {
 
   scorePanel = new RetroPanel();
   scorePanel.setWidth(50);
-  scorePanel.pixelsFromTopLeft(10, 10);
+  scorePanel.pixelsFromTopLeft(15, 30);
 
   gameOverLabel = new RetroLabel(largeFont);
   gameOverLabel.setText("GAME OVER");
@@ -95,11 +104,21 @@ void setup() {
   soundManager = new SoundManager(this);
   soundManager.addSound("mame_fire");
   soundManager.addSound("mame_explode1");
+  soundManager.setMute(true);
   
-  Keyboard.lockKeys(new int[]{KEY_D});
+  Keyboard.lockKeys(new int[]{KEY_B, KEY_M});
 }
 
+/*
+  This is called at the start of the game and any time
+  the user gets a game over.
+*/
 void resetGame(){
+  gameOver = false;
+  score = 0;
+  
+  numLives = 3;
+
   timer = new Timer();
   starfield = new Starfield(100);
   ship = new Ship();
@@ -125,6 +144,10 @@ void draw() {
   }else{
     gameOverLabel.draw();
     pushEnterToContinueLabel.draw();
+
+    if(Keyboard.isKeyDown(KEY_ENTER)){
+      resetGame();
+    }
   }
 
   starfield.draw();
@@ -140,9 +163,9 @@ void draw() {
   // Draw the small player ships that represent player lives
   // Lives are removed from left to right, so draw from right to left.
   pushMatrix();
-  scale(2);
+  scale(1);
   for(int lives = 0; lives < numLives; lives++){
-    image(shipLifeImage, 50 - (lives * (shipLifeImage.width+2)), 20);//, width, height);
+    image(shipLifeImage, 100 - (lives * (shipLifeImage.width+1)), 30);//, width, height);
   }
   popMatrix();
 
@@ -177,7 +200,7 @@ void generateAsteroids(){
     pvec.y += height/2;
 
     a.position = pvec;
-    a.setSize(1);
+    //a.setSize(2);
     
     asteroids.add(a);
   }  
@@ -201,6 +224,7 @@ void createParticleSystem(PVector pos){
 void loadNextLevel(){
   //timer = new Timer();
   //starfield = new Starfield(100);
+  level++;
   ship = new Ship();
 
   // Init sprites
@@ -211,6 +235,7 @@ void loadNextLevel(){
 }
 
 void respawn(){
+  waitingToRespawn = false;
   ship = new Ship();
 }
 
@@ -218,7 +243,8 @@ void update(){
   timer.tick();
   float deltaTime = timer.getDeltaSec();
 
-  debugOn = Keyboard.isKeyDown(KEY_D);  
+  // B for show bounding circles
+  debugOn = Keyboard.isKeyDown(KEY_B);  
   
   if(numAsteroidsAlive == 0){
     loadNextLevel();
@@ -235,6 +261,19 @@ void update(){
   if(!gameOver){
     ship.update(deltaTime);
     testCollisions();
+  }
+
+  // Once there are no astroids
+  // TODO: add check for bullets from saucer
+  if(waitingToRespawn){
+    BoundingCircle b = new BoundingCircle();
+    b.position = new PVector(width/2, height/2);
+    b.radius = 30;
+
+    if(checkoutAsteroidCollisionAgainstBounds(b) == -1){
+      waitingToRespawn = false;
+      respawn();
+    }
   }
 }
 
@@ -260,26 +299,40 @@ void testCollisions(){
       BoundingCircle bulletBounds  = bullets.get(currBullet).getBoundingCircle();
       BoundingCircle asteroidBounds = asteroids.get(currAsteroid).getBoundingCircle();
       
-      if( testCircleCollision(bulletBounds, asteroidBounds)){
+      if(testCircleCollision(bulletBounds, asteroidBounds)){
         bullets.get(currBullet).destroy();
         asteroids.get(currAsteroid).destroy();
         numAsteroidsAlive--;
-        score += ASTEROID_POINTS;
+
+
+        increaseScore(((Asteroid)asteroids.get(currAsteroid)).getPoints());
       }
     }
   }
   
   // Test collision against player's ship
   // Prevent destroying it if already destroyed
-  if(checkShipAsteroidCollision() != -1 && ship.isDestroyed() == false){
+  if(checkoutAsteroidCollisionAgainstBounds(ship.getBoundingCircle()) != -1 && ship.isDestroyed() == false){
     numLives--;
 
     if(numLives == 0){
       endGame();
     }
     else{
-      respawn();
+      ship.destroy();
+      ///respawn();
+      waitingToRespawn = true;
     }
+  }
+}
+
+/*
+*/
+void increaseScore(int amt){
+  score += amt;
+  
+  if(ALLOW_99_990_BUG && score >= 99990){
+    score = 0;
   }
 }
 
@@ -288,8 +341,10 @@ void testCollisions(){
   of the asteroid that collided with the ship.
 
   Made this into a function since Ship needs to use it for the teleport method.
+
+
 */
-public int checkShipAsteroidCollision(){
+public int checkoutAsteroidCollisionAgainstBounds(BoundingCircle bounds){
   for(int currAsteroid = 0; currAsteroid < asteroids.size(); currAsteroid++){
     
     Asteroid a = (Asteroid)asteroids.get(currAsteroid);
@@ -299,9 +354,9 @@ public int checkShipAsteroidCollision(){
     }
     
     BoundingCircle asteroidBounds = a.getBoundingCircle();
-    BoundingCircle shipBounds = ship.getBoundingCircle();
+    //BoundingCircle shipBounds = ship.getBoundingCircle();
     
-    if(testCircleCollision(asteroidBounds, shipBounds)){
+    if(testCircleCollision(asteroidBounds, bounds)){
       return currAsteroid;
     }
   }
@@ -327,7 +382,11 @@ void keyReleased(){
 }
 
 void keyPressed() {
-  Keyboard.setKeyDown(keyCode, true);  
+  Keyboard.setKeyDown(keyCode, true);
+
+  if(Keyboard.isKeyDown(KEY_M)){
+    soundManager.setMute(Keyboard.isKeyDown(KEY_M));
+  }
 }
 
 /**
@@ -978,26 +1037,51 @@ public abstract class RetroWidget{
 /*
     If an asteroid collides with the player's ship, the user is
     immediately killed.
+
+    There are 3 types of asteroids
 */
 public class Asteroid extends Sprite{
   
+  // Original version of the game didn't have rotating asteroids.
+  private static final boolean ALLOW_ROTATION = true;
+
+  // 
+  private int[] type0Coords = new int[]{24,0, 0,24,  16,30, 0,40, 17,60, 33,40, 33,60, 50,60, 64,40, 64,24, 48,0,  24,0}; // mushroom
+  private int[] type1Coords = new int[]{20,0, 26,16, 0,16,  0,40, 18,60, 40,54, 50,60, 66,46, 42,31, 66,23, 66,18, 44,0, 20,0}; // dinosaur
+  private int[] type2Coords = new int[]{18,0,  0,16, 10,30, 0,46, 18,60, 26,53, 50,60, 65,38, 50,22, 65,16, 50,0,  33,8, 18,0}; // x
+  private int[] arrType;
+
   private float rotSpeed;
-  private float scaleSize;
-  private float size;
+  private int size;
+  private int type;
+
+  private final int SMALL   = 0;
+  private final int MEDIUM  = 1;
+  private final int LARGE   = 2;
   
   public Asteroid(){
     // range from half of image height to full size of image height
-    setSize(1.0);
-
+    
     rotSpeed = random(-.5, .5);
     
     float randVel = 10;
     
-    position = new PVector(random(0, width), random(0,height));
+    setRandomType();
+
+    position = new PVector(random(0, width), random(0, height));
     velocity = new PVector(random(-randVel, randVel), random(-randVel, randVel));
 
-    bounds = new BoundingCircle();
-    bounds.radius = scaleSize/2.0f;
+    setSize(LARGE);
+  }
+
+  private void setRandomType(){
+    int r = (int)random(0, 3);
+
+    switch(r){
+      case 0: arrType = type0Coords;break;
+      case 1: arrType = type1Coords;break;
+      case 2: arrType = type2Coords;break;
+    }
   }
   
   public void update(float deltaTime){
@@ -1016,33 +1100,58 @@ public class Asteroid extends Sprite{
     updateBounds();    
   }
 
+  /*
+
+  */
   public void destroy(){
     super.destroy();
-    soundManager.playSound("mame_explode1");
+
+    //soundManager.playSound("mame_explode" + size);
+    
     createParticleSystem(position);
 
-    if(size == 1){
+    if(size != SMALL){
       for(int i = 0; i < 2; i++){
+        
         Asteroid a = new Asteroid();
-        a.setSize(0.5);
+        
         a.position = copyVector(position);
-        a.velocity = getRandomVector(new PVector(-30, -30), new PVector(30,30));
+        a.velocity = getRandomVector(new PVector(-30, -30), new PVector(30, 30));
+        
         a.bounds = this.bounds.clone();
-        a.bounds.radius *= 0.5;
+        
+        a.setSize(size - 1);
+        
         asteroids.add(a);
         numAsteroidsAlive++;
       }
     }
   }
+  
+  /*
+      Points depends on size of asteroid.
+  */
+  public int getPoints(){
+    switch(size){
+      case LARGE:   return 20;
+      case MEDIUM:  return 50;
+      case SMALL:   return 100;
+    }
+    return 0;
+  }
 
   /*
-    s is normalized
+    s must range from 0 to 2.
   */
-  public void setSize(float s){
-    if(s > 0){
+  public void setSize(int s){
+    if(s == SMALL || s == MEDIUM || s == LARGE){
       size = s;
-      scaleSize = s * 32;
-      //random(16, 32);
+      
+      bounds = new BoundingCircle();
+
+      if(size == 0){ bounds.radius = 8;}
+      if(size == 1){ bounds.radius = 16;}
+      if(size == 2){ bounds.radius = 32;}
     }
   }
 
@@ -1050,26 +1159,40 @@ public class Asteroid extends Sprite{
     if(isDestroyed()){
       return;
     }
-
     
     pushMatrix();
     translate(position.x, position.y);
-    scale(scaleSize/asteroidImage.width, scaleSize/asteroidImage.height);
-    rotate(rotation);
+    //scale(scaleSize/asteroidImage.width, scaleSize/asteroidImage.height);
+    
+    if(ALLOW_ROTATION){
+      rotate(rotation);
+    }
     
     pushStyle();
     imageMode(CENTER);
-    image(asteroidImage, 0, 0);
+    
+    stroke(255);
+    strokeWeight(4);
+
+    scale(bounds.radius/32);
+
+    //image(asteroidImage, 0, 0);
+    
+    for(int i = 0; i < arrType.length - 2; i+=2 ){
+      line(arrType[i]-32, arrType[i+1]-32, arrType[i+2]-32, arrType[i+3]-32);
+    }
+
     popStyle();
     
     popMatrix();
-    
+
     if(debugOn){
       pushMatrix();
       translate(position.x, position.y);
       pushStyle();
       stroke(255, 0, 0);
-      ellipse(0, 0, scaleSize, scaleSize);
+      noFill();
+      ellipse(0, 0, bounds.radius * 2 , bounds.radius * 2);
       popStyle();
       popMatrix();
     }
@@ -1151,7 +1274,6 @@ public class Ship extends Sprite{
   private float accel;
   
   private final float ROT_SPEED = 5.0f;
-  private final boolean ALLOW_ROT_IN_PLACE = true;
 
   private Timer thrustTimer;
   private Timer shootingTimer;
@@ -1202,7 +1324,7 @@ public class Ship extends Sprite{
       position = new PVector(randX, randY);
       bounds.position = copyVector(position);
 
-    }while(checkShipAsteroidCollision() != -1);
+    }while(checkoutAsteroidCollisionAgainstBounds(bounds) != -1);
 
     bounds.radius /= 3;
   }
@@ -1223,6 +1345,9 @@ public class Ship extends Sprite{
   }
   
   public void draw(){
+    if(isDestroyed()){
+      return;
+    }
 
     pushMatrix();
 
@@ -1230,9 +1355,8 @@ public class Ship extends Sprite{
     rotate(rotation);
     
     pushStyle();
-    stroke(128);
-    strokeWeight(2);
-
+    stroke(255);
+    strokeWeight(3);
     fill(0);
     
     line(10, 0, -10, 5);
@@ -1271,24 +1395,28 @@ public class Ship extends Sprite{
     shootingTimer.tick();
     teleportTimer.tick();
 
-    if(Keyboard.isKeyDown(KEY_CTRL)){
+    if(isDestroyed()){
+      return;
+    }
+
+    if(Keyboard.isKeyDown(KEY_CTRL) || Keyboard.isKeyDown(KEY_DOWN)){
       teleport();
     }
 
-    if(Keyboard.isKeyDown(KEY_LEFT) && ((Keyboard.isKeyDown(KEY_UP) || ALLOW_ROT_IN_PLACE))){
+    if(Keyboard.isKeyDown(KEY_LEFT) || Keyboard.isKeyDown(KEY_A)){ // && ((Keyboard.isKeyDown(KEY_UP) || ALLOW_ROT_IN_PLACE))){
       rotation -= ROT_SPEED * deltaTime;
     }
     
-    if(Keyboard.isKeyDown(KEY_RIGHT) && (Keyboard.isKeyDown(KEY_UP) || ALLOW_ROT_IN_PLACE)){
+    if(Keyboard.isKeyDown(KEY_RIGHT) || Keyboard.isKeyDown(KEY_D)){ // && (Keyboard.isKeyDown(KEY_UP) || ALLOW_ROT_IN_PLACE)){
       rotation += ROT_SPEED * deltaTime;
     }
     
     // slow down faster than speeding up
     // to help player avoid astroid collision.
-    if(Keyboard.isKeyDown(KEY_DOWN)){ //downKeyDown){
+    if(Keyboard.isKeyDown(KEY_DOWN) || Keyboard.isKeyDown(KEY_S)){
       accel -= 100;
     }
-    else if(Keyboard.isKeyDown(KEY_UP)){
+    else if(Keyboard.isKeyDown(KEY_UP) || Keyboard.isKeyDown(KEY_W)){
       accel += 50;
       accel = min(accel, 10000);
       thrustTimer.tick();
@@ -1696,7 +1824,7 @@ public class ParticleSystem extends Sprite{
       pushStyle();
       fill(255, opacity);
       noStroke();
-      ellipse(position.x, position.y, 1, 1);
+      ellipse(position.x, position.y, 2, 2);
       popStyle();
     }
   }
