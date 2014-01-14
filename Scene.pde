@@ -14,7 +14,7 @@ public class Scene{
   // the area is clear to spawn a user in the center of the screen.
   private boolean waitingToRespawn = false;
   
-  private final int NUM_ASTEROIDS = 7;
+  private final int NUM_ASTEROIDS = 3;
   private int numAsteroidsAlive;
 
   private boolean runningCollisionTest = false;
