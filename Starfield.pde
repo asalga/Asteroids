@@ -5,6 +5,8 @@ public class Starfield{
   private PVector[] stars;
   private int numStars;
   
+  /*
+  */
   public Starfield(int numStars){
     this.numStars = numStars;
     stars = new PVector[numStars];
@@ -14,6 +16,10 @@ public class Starfield{
     }
   }
   
+  /*
+    Stars should be a bit dimmer than bullets so the bullets
+    are easier to see.
+  */
   public void draw(){
     pushStyle();
     strokeWeight(1);

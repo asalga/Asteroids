@@ -85,7 +85,8 @@ public class ParticleSystem extends Sprite{
   }
   
   
- 
+  /*
+  */
   public ParticleSystem(int numParticles){
     
     setPosition(new PVector());
@@ -100,6 +101,10 @@ public class ParticleSystem extends Sprite{
       cParticle particle = new cParticle();      
       particles.add(particle);
     }
+
+    bounds = new BoundingCircle();
+    bounds.radius = 0;
+    bounds.position = new PVector(0, 0);
   }
   
   public void setPosition(PVector pos){
@@ -119,6 +124,14 @@ public class ParticleSystem extends Sprite{
     }
   }
   
+  /*
+  */
+  public void onCollision(Sprite s){
+
+  }
+
+
+
   public void draw(){
     // update all the particles
     for(int i = 0; i < particles.size(); i++){

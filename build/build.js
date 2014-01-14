@@ -2,9 +2,17 @@
   @pjs globalKeyEvents="true"; preload="data/images/asteroid.png, data/images/ship-life.png, data/fonts/asteroids-large-font.png, data/fonts/small-font.png";
 */
  
+ /*
+    - Remove bullet velocity reference from Ship
+    - Add thrust audio
+    - Fix scanline perf
+    - Fix scanlines on Safari
+    - Fix audio on Safari
+ */
+
 // Andor Salga
 // A clone of Asteroids
-// November 2014
+// January 2014
 
 import ddf.minim.*;
 
@@ -16,83 +24,28 @@ final boolean ALLOW_99_990_BUG = false;
 final boolean GOD_MODE = false;
 
 Starfield starfield;
-Ship ship;
-ArrayList <Sprite> asteroids;
-ArrayList <Sprite> bullets;
-ArrayList <Sprite> particleSystems;
 
-RetroFont fontSmall;
-RetroFont largeFont;
-
-RetroLabel copyright;
-RetroLabel currentScore;
-RetroPanel scorePanel;
-RetroLabel pushEnterToContinueLabel;
-RetroLabel gameOverLabel;
-
-Timer timer;
-
-boolean gameOver = false;
 boolean debugOn = false;
 
-final int NUM_ASTEROIDS = 10;
-int numAsteroidsAlive = NUM_ASTEROIDS;
-
-SoundManager soundManager;
-
+boolean gameOver = false;
 int level = 1;
 int score = 0;
 int numLives = 3;
 
-boolean waitingToRespawn = false;
+ScreenSet screens = new ScreenSet();
+Scene scene;
+SoundManager soundManager;
 
-// 
-PImage shipLifeImage;
-PImage asteroidImage;
-PImage ufoImage;
-
+/*
+*/
 void setup() {
   size(400, 400);
   imageMode(CENTER);
 
+  scene = new Scene();
+
   // get a nice pixelated look
   noSmooth();
-
-  resetGame();
-
-  fontSmall = new RetroFont("data/fonts/small-font.png", 4, 4, 1);
-  largeFont = new RetroFont("data/fonts/asteroids-large-font.png", 12, 14, 2);
-
-  scorePanel = new RetroPanel();
-  scorePanel.setWidth(50);
-  scorePanel.pixelsFromTopLeft(15, 50);
-
-  gameOverLabel = new RetroLabel(largeFont);
-  gameOverLabel.setText("GAME OVER");
-  gameOverLabel.setHorizontalTrimming(true);
-  gameOverLabel.pixelsFromCenter(0,0);
-
-  pushEnterToContinueLabel = new RetroLabel(largeFont);
-  pushEnterToContinueLabel.setText("PRESS ENTER TO CONTINUE");
-  pushEnterToContinueLabel.setHorizontalTrimming(true);
-  pushEnterToContinueLabel.pixelsFromCenter(0, 40);
-
-  copyright = new RetroLabel(fontSmall);
-  copyright.setHorizontalSpacing(1);
-  copyright.pixelsFromTop(height-40);
-  copyright.setHorizontalTrimming(true);
-
-  // We don't want the score bouncing around, so leave the trimming off.
-  currentScore = new RetroLabel(largeFont);
-  //currentScore.setHorizontalSpacing(1);
-  //currentScore.setHorizontalTrimming(true);
-  currentScore.pixelsFromRight(0);
-  scorePanel.addWidget(currentScore);
-
-  // Images!
-  shipLifeImage = loadImage("data/images/ship-life.png");
-  // asteroidImage = loadImage("data/images/asteroid.png");
-  // ufoImage
       
   // 
   soundManager = new SoundManager(this);
@@ -100,228 +53,46 @@ void setup() {
   soundManager.addSound("mame_explode0");
   soundManager.addSound("mame_explode1");
   soundManager.addSound("mame_explode2");
-  
+
+  screens.add(new ScreenHighScores());
+  screens.add(new GameplayScreen());
+
   // Toggle keys for showing Bounds and Mute.
   Keyboard.lockKeys(new int[]{KEY_B, KEY_M});
 }
 
 /*
-  This is called at the start of the game and any time
-  the user gets a game over.
 */
-void resetGame(){
-  gameOver = false;
-  score = 0;
-  
-  numLives = 3;
-
-  timer = new Timer();
-  starfield = new Starfield(100);
-  ship = new Ship();
-
-  // Init sprites
-  generateAsteroids();
-  numAsteroidsAlive = asteroids.size();
-  bullets = new ArrayList<Sprite>();
-  particleSystems = new ArrayList<Sprite>();
-}
-
 void draw() {
   update();
+  screens.curr.draw();
+  scanLinePostProcess();
+}
+
+/*
+  Add scanlines for a retro look
+*/
+void scanLinePostProcess(){
+  pushStyle();
   
-  background(0);
-  copyright.setText("2014 ANDOR INC");
-  
-  // Based on screenshots, the score starts off with two zeros
-  currentScore.setText(prependStringWithString("" + score, "0", 2));
-
-  if(!gameOver){
-    ship.draw();
-  }else{
-    gameOverLabel.draw();
-    pushEnterToContinueLabel.draw();
-
-    if(Keyboard.isKeyDown(KEY_ENTER)){
-      resetGame();
-    }
-  }
-
-  starfield.draw();
-    
-  drawSpriteList(asteroids);
-  drawSpriteList(bullets);
-  drawSpriteList(particleSystems);
-
-  copyright.draw();
-  
-  scorePanel.draw();
-
-  // Draw the small player ships that represent player lives
-  // Lives are removed from left to right, so draw from right to left.
-  pushMatrix();
-  scale(1);
-  for(int lives = 0; lives < numLives; lives++){
-    image(shipLifeImage, 100 - (lives * (shipLifeImage.width+1)), 34);//, width, height);
-  }
-  popMatrix();
-
-  // Add scanlines for a retro look
   stroke(16, 128);
   strokeWeight(1);
+  
   for(int i = 0; i < height; i += 2 ){
     line(0, i, width, i);
   }
   
   for(int i = 0; i < width; i += 2 ){
-    line(i, 0, i, height);
+   // line(i, 0, i, height);
   }
+
+  popStyle();
 }
 
 /*
 */
-void generateAsteroids(){
-  asteroids = new ArrayList<Sprite>(0);
-  
-  for(int i = 0; i < NUM_ASTEROIDS; i++){
-    Asteroid a = new Asteroid();
-    
-    // Place asteroids around the ship so they don't
-    // immediately collide with the player. 
-    PVector pvec = randomVector();
-    pvec.x *= width/4;
-    pvec.y *= height/4;
-    
-    pvec.x *= random(1, 2);
-    pvec.y *= random(1, 2);
-
-    pvec.x += width/2;
-    pvec.y += height/2;
-
-    a.position = pvec;
-    //a.setSize(2);
-    
-    asteroids.add(a);
-  }  
-}
-
-/*
-  Create a particle system in place of a sprite.
-*/
-void createParticleSystem(PVector pos){
-  ParticleSystem psys = new ParticleSystem(15);
-  particleSystems.add(psys);
-
-  psys.setParticleVelocity(new PVector(-35,-35), new PVector(35,35));
-  psys.setParticleLifeTime(0.2, 1);
-  psys.setPosition(pos);
-  psys.emit(15);
-}
-
-/*
-*/
-void loadNextLevel(){
-  //timer = new Timer();
-  //starfield = new Starfield(100);
-  level++;
-  ship = new Ship();
-
-  // Init sprites
-  generateAsteroids();
-  numAsteroidsAlive = asteroids.size();
-  //bullets = new ArrayList<Sprite>();
-  particleSystems = new ArrayList<Sprite>();
-}
-
-void respawn(){
-  waitingToRespawn = false;
-  ship = new Ship();
-}
-
 void update(){
-  timer.tick();
-  float deltaTime = timer.getDeltaSec();
-
-  // B for show bounding circles
-  debugOn = Keyboard.isKeyDown(KEY_B);  
-  
-  if(numAsteroidsAlive == 0){
-    loadNextLevel();
-  }
-
-  if(Keyboard.isKeyDown(KEY_SPACE)){
-    ship.fire();
-  }
-  
-  updateSpriteList(asteroids, deltaTime);
-  updateSpriteList(bullets, deltaTime);
-  updateSpriteList(particleSystems, deltaTime);  
-  
-  if(!gameOver){
-    ship.update(deltaTime);
-    testCollisions();
-  }
-
-  // Once there are no astroids
-  // TODO: add check for bullets from saucer
-  if(waitingToRespawn){
-    BoundingCircle b = new BoundingCircle();
-    b.position = new PVector(width/2, height/2);
-    b.radius = 30;
-
-    if(checkoutAsteroidCollisionAgainstBounds(b) == -1){
-      waitingToRespawn = false;
-      respawn();
-    }
-  }
-}
-
-void updateSpriteList(ArrayList<Sprite> spriteList, float deltaTime){
-  for(int i = 0; i < spriteList.size(); i++){
-    spriteList.get(i).update(deltaTime);
-  }
-}
-
-void drawSpriteList(ArrayList<Sprite> spriteList){
-  for(int i = 0; i < spriteList.size(); i++){
-    spriteList.get(i).draw();
-  }
-}
-
-void testCollisions(){
-  for(int currAsteroid = 0; currAsteroid < asteroids.size(); currAsteroid++){
-    for(int currBullet = 0; currBullet < bullets.size(); currBullet++){
-      if(bullets.get(currBullet).isDestroyed() || asteroids.get(currAsteroid).isDestroyed()){
-        continue;
-      }
-      
-      BoundingCircle bulletBounds  = bullets.get(currBullet).getBoundingCircle();
-      BoundingCircle asteroidBounds = asteroids.get(currAsteroid).getBoundingCircle();
-      
-      if(testCircleCollision(bulletBounds, asteroidBounds)){
-        bullets.get(currBullet).destroy();
-        asteroids.get(currAsteroid).destroy();
-        numAsteroidsAlive--;
-
-
-        increaseScore(((Asteroid)asteroids.get(currAsteroid)).getPoints());
-      }
-    }
-  }
-  
-  // Test collision against player's ship
-  // Prevent destroying it if already destroyed
-  if(checkoutAsteroidCollisionAgainstBounds(ship.getBoundingCircle()) != -1 && ship.isDestroyed() == false){
-    numLives--;
-
-    ship.destroy();
-
-    if(numLives == 0){
-      endGame();
-    }
-    else{
-      waitingToRespawn = true;
-    }
-  }
+  screens.curr.update();
 }
 
 /*
@@ -335,36 +106,6 @@ void increaseScore(int amt){
 }
 
 /*
-  Returns -1 if there is no collision. Otherwise returns the index
-  of the asteroid that collided with the ship.
-
-  Made this into a function since Ship needs to use it for the teleport method.
-
-  We also use it when trying to respawn the player. There should be no collision when
-  the player is respawned.
-*/
-public int checkoutAsteroidCollisionAgainstBounds(BoundingCircle bounds){
-  for(int currAsteroid = 0; currAsteroid < asteroids.size(); currAsteroid++){
-    
-    Asteroid a = (Asteroid)asteroids.get(currAsteroid);
-    // We recycle the list, so make sure we don't check against and element that is not active.
-    if(a.isDestroyed()){
-      continue;
-    }
-    
-    BoundingCircle asteroidBounds = a.getBoundingCircle();
-    
-    if(testCircleCollision(asteroidBounds, bounds)){
-      return currAsteroid;
-    }
-  }
-
-  return -1;
-}
-
-
-/*
-
 */
 void endGame(){
   if(GOD_MODE == true){
@@ -377,39 +118,17 @@ void endGame(){
 
 void keyReleased(){
   Keyboard.setKeyDown(keyCode, false);
+  screens.curr.keyReleased();
 }
 
-void keyPressed() {
+void keyPressed(){
   Keyboard.setKeyDown(keyCode, true);
 
   if(Keyboard.isKeyDown(KEY_M)){
     soundManager.setMute(Keyboard.isKeyDown(KEY_M));
   }
-}
 
-/**
-    Recycle bullets when we can.
-*/
-void createBullet(PVector position, PVector velocity){
-  
-  int index = -1;
-  for(int i = 0; i < bullets.size(); i++){
-    if(bullets.get(i).isDestroyed()){
-      index = i;
-      break;
-    }
-  }
-  
-  Bullet bullet = new Bullet();
-  bullet.position = position;
-  bullet.velocity = velocity;
-  
-  if(index == -1){
-    bullets.add(bullet);
-  }
-  else{
-    bullets.set(index, bullet);
-  }
+  screens.curr.keyPressed();
 }
 /*
     A panel represents a generic container that can hold
@@ -1044,8 +763,8 @@ public class Asteroid extends Sprite{
   private static final boolean ALLOW_ROTATION = true;
 
   // 
-  private int[] type0Coords = new int[]{24,0, 0,24,  16,30, 0,40, 17,60, 33,40, 33,60, 50,60, 64,40, 64,24, 48,0,  24,0}; // mushroom
-  private int[] type1Coords = new int[]{20,0, 26,16, 0,16,  0,40, 18,60, 40,54, 50,60, 66,46, 42,31, 66,23, 66,18, 44,0, 20,0}; // dinosaur
+  private int[] type0Coords = new int[]{24,0,  0,24, 16,30, 0,40, 17,60, 33,40, 33,60, 50,60, 64,40, 64,24, 48,0,  24,0}; // mushroom
+  private int[] type1Coords = new int[]{20,0, 26,16,  0,16, 0,40, 18,60, 40,54, 50,60, 66,46, 42,31, 66,23, 66,18, 44,0, 20,0}; // dinosaur
   private int[] type2Coords = new int[]{18,0,  0,16, 10,30, 0,46, 18,60, 26,53, 50,60, 65,38, 50,22, 65,16, 50,0,  33,8, 18,0}; // x
   private int[] arrType;
 
@@ -1057,9 +776,9 @@ public class Asteroid extends Sprite{
   private final int MEDIUM  = 1;
   private final int LARGE   = 2;
   
+  /*
+  */
   public Asteroid(){
-    // range from half of image height to full size of image height
-    
     rotSpeed = random(-.5, .5);
     
     float randVel = 10;
@@ -1070,8 +789,14 @@ public class Asteroid extends Sprite{
     velocity = new PVector(random(-randVel, randVel), random(-randVel, randVel));
 
     setSize(LARGE);
+
+    name = "asteroid";
   }
 
+  /*
+    There are three 'models' of the asteroids.
+    TODO: create procedural asteroid models.
+  */
   private void setRandomType(){
     int r = (int)random(0, 3);
 
@@ -1095,7 +820,7 @@ public class Asteroid extends Sprite{
     bounds.position = copyVector(position);
     
     moveIfPastBounds();
-    updateBounds();    
+    updateBounds();
   }
 
   /*
@@ -1105,8 +830,13 @@ public class Asteroid extends Sprite{
     super.destroy();
 
     soundManager.playSound("mame_explode" + size);
-    
-    createParticleSystem(position);
+
+    ParticleSystem psys = new ParticleSystem(15);
+    psys.setParticleVelocity(new PVector(-35,-35), new PVector(35,35));
+    psys.setParticleLifeTime(0.2, 1);
+    psys.setPosition(position);
+    psys.emit(15);
+    scene.addSprite(psys);
 
     if(size != SMALL){
       for(int i = 0; i < 2; i++){
@@ -1115,15 +845,19 @@ public class Asteroid extends Sprite{
         
         a.position = copyVector(position);
         a.velocity = getRandomVector(new PVector(-30, -30), new PVector(30, 30));
-        
+        a.name = "asteroid";
+
         a.bounds = this.bounds.clone();
         
         a.setSize(size - 1);
         
-        asteroids.add(a);
-        numAsteroidsAlive++;
+        scene.addSprite(a);
       }
     }
+
+    // Do this only after the small asteroids have been added to make sure the asteroid
+    // count never goes to zero and confuses the game state.
+    scene.removeSprite(this);
   }
   
   /*
@@ -1136,6 +870,17 @@ public class Asteroid extends Sprite{
       case SMALL:   return 100;
     }
     return 0;
+  }
+
+  /*
+  */
+  public void onCollision(Sprite s){  
+    if( s.getName().equals("bullet") ||
+        //s.getName().equals("ship") ||
+        s.getName().equals("saucer")){
+
+      destroy();
+    }
   }
 
   /*
@@ -1153,6 +898,9 @@ public class Asteroid extends Sprite{
     }
   }
 
+  /*
+    The asteroids are rendered using simple lines.
+  */
   public void draw(){
     if(isDestroyed()){
       return;
@@ -1174,8 +922,6 @@ public class Asteroid extends Sprite{
 
     scale(bounds.radius/32);
 
-    //image(asteroidImage, 0, 0);
-    
     for(int i = 0; i < arrType.length - 2; i+=2 ){
       line(arrType[i]-32, arrType[i+1]-32, arrType[i+2]-32, arrType[i+3]-32);
     }
@@ -1232,8 +978,19 @@ public class Bullet extends Sprite{
     
     bounds = new BoundingCircle();
     bounds.radius = 3;
+    name = "bullet";
   }
   
+  public void onCollision(Sprite s){
+    String other = s.getName();
+
+    if(other.equals("ship") || other.equals("bullet")){
+      return;
+    }
+
+    destroy();
+  }
+
   public void draw(){
     if(isDestroyed()){
       return;
@@ -1290,6 +1047,8 @@ public class Ship extends Sprite{
     bounds = new BoundingCircle();
     bounds.radius = 20/2.0;
     bounds.position = copyVector(position);
+
+    name = "ship";
   }
   
   public void destroy(){
@@ -1317,16 +1076,29 @@ public class Ship extends Sprite{
     // might be too hard to see.
     int border = 40;
 
-    do{
+   // do{
       float randX = random(40, width - 40);
       float randY = random(40, height - 40);
 
       position = new PVector(randX, randY);
       bounds.position = copyVector(position);
 
-    }while(checkoutAsteroidCollisionAgainstBounds(bounds) != -1);
+      //AS!!
+   // }while(checkoutAsteroidCollisionAgainstBounds(bounds) != -1);*/ //AS!!!
 
     bounds.radius /= 3;
+  }
+
+  /*
+    self - can't happen
+    asteroid - destroy
+    ufo - destroy
+    self bullet - nothing
+  */
+  public void onCollision(Sprite s){
+    if(s.getName() == "asteroid"){
+      destroy();
+    }
   }
 
   /*
@@ -1340,12 +1112,16 @@ public class Ship extends Sprite{
     if(shootingTimer.getTotalTime() > 0.25f){
       shootingTimer.reset();
       soundManager.playSound("mame_fire");
-      createBullet(copyVector(position), new PVector(cos(rotation) * BULLET_SPEED, sin(rotation) * BULLET_SPEED));
+
+      Bullet b = new Bullet();
+      b.position = copyVector(position);
+      b.velocity = new PVector(cos(rotation) * BULLET_SPEED, sin(rotation) * BULLET_SPEED);
+      scene.addSprite(b);
     }
   }
   
   public void draw(){
-    if(isDestroyed()){
+    if(isDestroyed() || visible == false){
       return;
     }
 
@@ -1392,11 +1168,15 @@ public class Ship extends Sprite{
   /*
   */
   public void update(float deltaTime){
+    if(isDestroyed()){
+      return;
+    }
+
     shootingTimer.tick();
     teleportTimer.tick();
 
-    if(isDestroyed()){
-      return;
+    if(Keyboard.isKeyDown(KEY_SPACE)){
+      fire();
     }
 
     // Some versions have teleporting others have a shield
@@ -1529,22 +1309,42 @@ public abstract class Sprite{
   protected float rotation;
   
   protected BoundingCircle bounds;
+
+  public boolean visible;
+
+  protected String name;
  
   public Sprite(){
     dead = false;
+    visible = true;
     position = new PVector();
     velocity = new PVector();
     rotation = 0;
+    name = "";
   }
   
+  public boolean collidable(){
+    return true;
+  }
+
   public void destroy(){
     dead = true;
+  }
+
+  public String getName(){
+    return name;
   }
   
   public boolean isDestroyed(){
     return dead;
   }
   
+  /*
+    Graceful placement of the sprite, we wait until it is
+    entirely out of view, then place it on the opposite side
+    entirely out of view so that the sprites don't appear and
+    disappear which isn't nice to see.
+  */
   public void moveIfPastBounds(){
    if(position.x - bounds.radius > width){
       position.x = -bounds.radius; 
@@ -1559,10 +1359,6 @@ public abstract class Sprite{
       position.y = -bounds.radius;
     }
   }
-
-  public void update(float deltaTime){}
-
-  public abstract void draw();
   
   public void updateBounds(){
     bounds.position = copyVector(position);
@@ -1571,6 +1367,10 @@ public abstract class Sprite{
   public BoundingCircle getBoundingCircle(){
     return bounds.clone();
   }
+
+  public abstract void update(float deltaTime);
+  public abstract void onCollision(Sprite s);
+  public abstract void draw();
 }
 /*
     Simple starfield acts as the background
@@ -1579,6 +1379,8 @@ public class Starfield{
   private PVector[] stars;
   private int numStars;
   
+  /*
+  */
   public Starfield(int numStars){
     this.numStars = numStars;
     stars = new PVector[numStars];
@@ -1588,6 +1390,10 @@ public class Starfield{
     }
   }
   
+  /*
+    Stars should be a bit dimmer than bullets so the bullets
+    are easier to see.
+  */
   public void draw(){
     pushStyle();
     strokeWeight(1);
@@ -1832,7 +1638,8 @@ public class ParticleSystem extends Sprite{
   }
   
   
- 
+  /*
+  */
   public ParticleSystem(int numParticles){
     
     setPosition(new PVector());
@@ -1847,6 +1654,10 @@ public class ParticleSystem extends Sprite{
       cParticle particle = new cParticle();      
       particles.add(particle);
     }
+
+    bounds = new BoundingCircle();
+    bounds.radius = 0;
+    bounds.position = new PVector(0, 0);
   }
   
   public void setPosition(PVector pos){
@@ -1866,6 +1677,14 @@ public class ParticleSystem extends Sprite{
     }
   }
   
+  /*
+  */
+  public void onCollision(Sprite s){
+
+  }
+
+
+
   public void draw(){
     // update all the particles
     for(int i = 0; i < particles.size(); i++){
@@ -2088,3 +1907,814 @@ final int KEY_F12 = 122;
 
 //final int KEY_INSERT = 155;
 
+/*
+  Mostly manages sprites 
+*/
+public class Scene{
+
+  // ship, asteroids, bullets  
+  private ArrayList <Sprite> sprites;
+
+  private Ship tempShip;
+  private Ship ship;
+  private Starfield starfield;
+
+  // When the ship is destroyed, we need to wait until 
+  // the area is clear to spawn a user in the center of the screen.
+  private boolean waitingToRespawn = false;
+  
+  private final int NUM_ASTEROIDS = 7;
+  private int numAsteroidsAlive;
+
+  private boolean runningCollisionTest = false;
+  private boolean foundCollision = false;
+
+  /*
+  */
+  public Scene(){
+    starfield = new Starfield(100);
+    resetGame();
+  }
+
+  /*
+    This is called at the start of the game and any time
+    the user gets a game over.
+  */
+  public void resetGame(){
+    sprites = new ArrayList <Sprite>();
+    gameOver = false;
+    score = 0;
+    numLives = 3;
+    level = 0;
+    loadNextLevel();
+  }
+
+  /*
+    Place the ship back in the center and create a fresh set of asteroids
+  */
+  private void loadNextLevel(){
+    level++;
+    generateAsteroids();
+    respawn();
+  }
+
+  /*
+    Don't forget to remvoe the old ship
+  */
+  void respawn(){
+    waitingToRespawn = false;
+    
+    removeSprite(ship);
+
+    ship = new Ship();
+    ship.position = new PVector(width/2, height/2);
+    sprites.add(ship);
+  }
+
+  /*
+    Update & Test Collisions
+  */
+  public void update(float deltaTime){
+    for(int i = 0; i < sprites.size(); i++){
+      sprites.get(i).update(deltaTime);
+    }
+
+    if(gameOver == false){
+      int m = millis();
+      testCollisions();
+      //println("time: " + (millis() - m));
+    }
+
+    if(waitingToRespawn){
+      if(SpriteCollidesWithSpriteList(tempShip) == false){
+        waitingToRespawn = false;
+        respawn();
+      }
+    }
+
+    // If the game is in a game over state, we wait until the
+    // player hits enter.
+    if(gameOver){
+      if(Keyboard.isKeyDown(KEY_ENTER)){
+        resetGame();
+      }
+    }
+    else if(ship.isDestroyed() && waitingToRespawn == false){
+
+      removeSprite(ship);
+      numLives--;
+
+      if(numLives == 0){
+        //endGame();
+        gameOver = true;
+      }
+      else{
+        waitingToRespawn = true;
+        tempShip = new Ship();
+        return;
+      }
+    }
+
+    // 
+    boolean needsUpdate = false;
+    for(int i = 0; i < sprites.size(); i++){
+      if(sprites.get(i).isDestroyed()){
+        needsUpdate = true;
+      }
+    }
+
+    if(needsUpdate){
+      ArrayList<Sprite> newList = new ArrayList<Sprite>();
+      for(int i = 0; i < sprites.size();i++){
+        if(sprites.get(i).isDestroyed() == false){
+          newList.add(sprites.get(i));
+        }
+      }
+
+      sprites = newList;
+    }
+  }
+
+  /*
+  */
+  private boolean SpriteCollidesWithSpriteList(Sprite s){
+    for(int i = 0; i < sprites.size(); i++){
+      if(testCircleCollision(s.getBoundingCircle(), sprites.get(i).getBoundingCircle())){
+        return true;
+      }
+    }
+    return false;
+  }
+
+  /*
+    Store the collided sprites into a list, then resolve them.
+
+    After all the sprites are updated, we test for collisions which 
+    may mark some sprites as dead. Next update we iterate over our sprite
+    list and any sprites marked dead are removed from the list.
+  */
+  private void testCollisions(){
+
+    int j;
+
+    for(int i = 0; i < sprites.size(); i++){
+      for(j = i + 1; j < sprites.size(); j++){
+
+        Sprite temp1 = sprites.get(i);
+        Sprite temp2 = sprites.get(j);
+        
+        // there are no cases in which a sprite with the same type
+        // need to test against a collision with the same type.
+        if(temp1.getName().equals(temp2.getName())){
+          continue;
+        }
+
+        BoundingCircle b1 = sprites.get(i).getBoundingCircle();
+        BoundingCircle b2 = sprites.get(j).getBoundingCircle();
+
+        if(testCircleCollision(b1, b2)){
+          temp1.onCollision(temp2);
+          temp2.onCollision(temp1);
+
+          foundCollision = true;
+          return;
+        }
+      }
+    }
+  }
+
+  /*
+    Add a sprite to the list of sprites that will be updated,
+    tested for collisions and rendered.
+  */
+  public void addSprite(Sprite s){
+    sprites.add(s);
+    
+    if(s.getName().equals("asteroid")){
+      numAsteroidsAlive++;
+    }
+  }
+
+  /*
+    When an asteroid is destroyed, it calls this to remove
+    itself. This helps us keep track of the count left
+  */
+  public void removeSprite(Sprite s){
+
+    for(int i = 0; i < sprites.size(); i++){
+      if(sprites.get(i) == s){
+        if(sprites.get(i).getName().equals("asteroid")){
+          numAsteroidsAlive--;
+          int points = ((Asteroid)sprites.get(i)).getPoints();
+          score += points;
+        }
+        sprites.remove(i);
+        break;
+      }
+    }
+
+    //
+    if(numAsteroidsAlive == 0){
+      loadNextLevel();
+    }
+  }
+
+  /*
+      O(n)
+  */
+  public Sprite getSpriteByName(String spriteName){
+    for(int i = 0; i < sprites.size(); i++){
+      if(sprites.get(i).getName() == spriteName){
+        return sprites.get(i);
+      }
+    }
+    return null;
+  }
+
+  /*
+  */
+  private void generateAsteroids(){
+    for(int i = 0; i < NUM_ASTEROIDS; i++){
+      Asteroid a = new Asteroid();
+    
+      // Place asteroids around the ship so they don't
+      // immediately collide with the player. 
+      PVector pvec = randomVector();
+      pvec.x *= width/4;
+      pvec.y *= height/4;
+      
+      pvec.x *= random(1, 2);
+      pvec.y *= random(1, 2);
+
+      pvec.x += width/2;
+      pvec.y += height/2;
+
+      a.position = pvec;
+      //a.setSize(2);
+      
+      addSprite(a);
+    }  
+  }
+
+  /*
+  */
+  public void draw(){
+    starfield.draw();
+
+    for(int i = 0; i < sprites.size(); i++){
+      sprites.get(i).draw();
+    }
+  }
+}
+/**
+*/
+public class ScreenSet{
+  
+  private ArrayList<IScreen> screens;
+  public IScreen curr;
+  
+  public ScreenSet(){
+    screens = new ArrayList<IScreen>();
+    curr = null;
+  }
+  
+  public void add(IScreen s){
+    screens.add(s);
+    if(curr == null){
+      curr = s;
+      curr.OnTransitionTo();
+    }
+  }
+  
+  public void setCurr(IScreen s){
+    curr = s;
+  }
+  
+  /*
+      TODO: add awesome transition effect
+  */
+  public void transitionTo(String s){
+    for(int i = 0; i < screens.size(); i++){
+      if(s == screens.get(i).getName()){
+        curr = screens.get(i);
+        curr.OnTransitionTo();
+        break;
+      }
+    }
+  }
+}
+/*
+    Displays game name and credits
+*/
+public class GameplayScreen extends IScreen{
+  
+  RetroLabel copyright;
+  RetroLabel currentScore;
+  RetroPanel scorePanel;
+  RetroLabel pushEnterToContinueLabel;
+  RetroLabel gameOverLabel;
+   
+  PImage shipLifeImage;
+  RetroFont solarWindsFont;
+
+  RetroFont fontSmall;
+  RetroFont largeFont;
+
+  RetroLabel creditsLabel;
+  RetroLabel loadingLabel;
+  RetroLabel mainTitleLabel;
+  
+  Timer timer;
+  
+  public void OnTransitionTo(){
+    //resetGame();
+  }
+
+  /*
+  */
+  public GameplayScreen(){
+    timer = new Timer();//AS!!
+    
+    fontSmall = new RetroFont("data/fonts/small-font.png", 4, 4, 1);
+    largeFont = new RetroFont("data/fonts/asteroids-large-font.png", 12, 14, 2);
+
+    scorePanel = new RetroPanel();
+    scorePanel.setWidth(50);
+    scorePanel.pixelsFromTopLeft(15, 50);
+
+    gameOverLabel = new RetroLabel(largeFont);
+    gameOverLabel.setText("GAME OVER");
+    gameOverLabel.setHorizontalTrimming(true);
+    gameOverLabel.pixelsFromCenter(0,0);
+
+    pushEnterToContinueLabel = new RetroLabel(largeFont);
+    pushEnterToContinueLabel.setText("PRESS ENTER TO CONTINUE");
+    pushEnterToContinueLabel.setHorizontalTrimming(true);
+    pushEnterToContinueLabel.pixelsFromCenter(0, 40);
+
+    copyright = new RetroLabel(fontSmall);
+    copyright.setHorizontalSpacing(1);
+    copyright.pixelsFromTop(height-40);
+    copyright.setHorizontalTrimming(true);
+    copyright.setText("2014 ANDOR INC");
+
+    // We don't want the score bouncing around, so leave the trimming off.
+    currentScore = new RetroLabel(largeFont);
+    //currentScore.setHorizontalSpacing(1);
+    //currentScore.setHorizontalTrimming(true);
+    currentScore.pixelsFromRight(0);
+    scorePanel.addWidget(currentScore);
+
+    // Images!
+    shipLifeImage = loadImage("data/images/ship-life.png");
+  }
+  
+  /**
+  */
+  public void draw(){
+    background(0);
+    
+    scene.draw();
+
+    // Based on screenshots, the score starts off with two zeros
+    currentScore.setText(prependStringWithString("" + score, "0", 2));
+ 
+    // Labels
+    copyright.draw();
+    scorePanel.draw();
+    
+    // Draw the small player ships that represent player lives
+    // Lives are removed from left to right, so draw from right to left.
+    pushMatrix();
+    scale(1);
+    for(int lives = 0; lives < numLives; lives++){
+      image(shipLifeImage, 100 - (lives * (shipLifeImage.width+1)), 34);//, width, height);
+    }
+
+    popMatrix();
+
+    if(gameOver){
+      pushEnterToContinueLabel.draw();
+      gameOverLabel.draw();
+    }
+  }
+
+  /*
+  */
+  public void update(){
+
+    timer.tick();
+
+    float deltaTime = timer.getDeltaSec();
+
+    // B for show bounding circles
+    debugOn = Keyboard.isKeyDown(KEY_B);  
+    scene.update(deltaTime);
+
+    if(gameOver && Keyboard.isKeyDown(KEY_ENTER)){
+      scene = new Scene();
+    }
+
+   /*     
+    // Once there are no astroids
+    // TODO: add check for bullets from saucer
+    if(waitingToRespawn){
+      BoundingCircle b = new BoundingCircle();
+      b.position = new PVector(width/2, height/2);
+      b.radius = 30;
+*/
+     // if(checkoutAsteroidCollisionAgainstBounds(b) == -1){
+      //  waitingToRespawn = false;
+       // respawn();
+      //} //AS!!!
+    //}
+
+    //screens.curr.update();
+  }
+
+
+ /* void updateSpriteList(ArrayList<Sprite> spriteList, float deltaTime){
+    for(int i = 0; i < spriteList.size(); i++){
+      spriteList.get(i).update(deltaTime);
+    }
+  }
+
+  void drawSpriteList(ArrayList<Sprite> spriteList){
+    for(int i = 0; i < spriteList.size(); i++){
+      spriteList.get(i).draw();
+    }
+  }
+  */
+  public String getName(){
+    return "gameplayscreen";
+  }
+}
+/*
+    First thing that is displayed to the user are the high scores
+
+*/
+public class ScreenHighScores extends IScreen{
+ 
+  RetroFont largeFont;
+  RetroFont smallFont;
+
+  RetroLabel highScoresLabel;
+  
+  RetroLabel []leaderboardNumbers;
+  RetroLabel []leaderboardScores;
+  RetroLabel []leaderboardNames;
+
+  // Allows us to right-align scores
+  RetroPanel scorePanel;
+
+  RetroLabel andorIncLabel;
+
+  public ScreenHighScores(){
+    largeFont = new RetroFont("data/fonts/asteroids-large-font.png", 12, 14, 2);
+    smallFont = new RetroFont("data/fonts/small-font.png", 4, 4, 1);
+
+    scorePanel = new RetroPanel();
+    scorePanel.setWidth(width/2);
+    scorePanel.pixelsFromTopLeft(0, 50);
+
+    highScoresLabel = new RetroLabel(largeFont);
+    highScoresLabel.setText("HIGH SCORES");
+    highScoresLabel.setHorizontalSpacing(2);
+    highScoresLabel.pixelsFromTop(50);
+
+    leaderboardNumbers = new RetroLabel[5];
+    leaderboardNames = new RetroLabel[5];
+    leaderboardScores = new RetroLabel[5];
+
+    for(int i = 0; i < 5; i++){
+      leaderboardNumbers[i] = new RetroLabel(largeFont);
+      leaderboardNumbers[i].setText("0" + (i+1) + ".");
+      leaderboardNumbers[i].pixelsFromTopLeft(100 + (i * 16), 80);
+
+      leaderboardScores[i] = new RetroLabel(largeFont);
+      leaderboardScores[i].pixelsFromTopRight(100 + (i * 16), 10);
+      scorePanel.addWidget(leaderboardScores[i]);
+
+      leaderboardNames[i] = new RetroLabel(largeFont);
+      leaderboardNames[i].pixelsFromTopLeft(100 + (i * 16), 280);
+    }
+
+
+    leaderboardScores[0].setText("6493100");
+    leaderboardNames[0].setText("CPP");
+
+    leaderboardScores[1].setText("4293600");
+    leaderboardNames[1].setText("RPG");
+
+    leaderboardScores[2].setText("3923800");
+    leaderboardNames[2].setText("HAX");
+
+    leaderboardScores[3].setText("2551900");
+    leaderboardNames[3].setText("LUA");
+
+    leaderboardScores[4].setText("27200");
+    leaderboardNames[4].setText("CSS");
+
+
+    andorIncLabel = new RetroLabel(smallFont);
+    andorIncLabel.setText("2014 ANDOR INC");
+    andorIncLabel.setVerticalSpacing(0);
+    andorIncLabel.setHorizontalTrimming(true);
+    andorIncLabel.pixelsFromTop(height - 20);
+  }
+
+  public void OnTransitionTo(){}
+
+  /**
+  */
+  public void draw(){
+    background(0);
+    
+    highScoresLabel.draw();
+    
+    scorePanel.draw();
+
+    for(int i = 0; i < 5; i++){
+      leaderboardNumbers[i].draw();
+      leaderboardNames[i].draw();
+    }
+
+    andorIncLabel.draw();
+  }
+  
+  public void keyPressed(){
+    screens.transitionTo("gameplayscreen");
+  }
+
+  public void update(){
+  }
+  
+  public String getName(){
+    return "highscores";
+  }
+}
+/*
+    
+*/
+public class IScreen{
+  
+  public void draw(){}
+  public void update(){}
+  
+  public void mousePressed(){}
+  public void mouseReleased(){}
+  public void mouseDragged(){}
+  public void mouseMoved(){}
+  
+  public void keyPressed(){}
+  public void keyReleased(){}
+  public void OnTransitionTo(){}
+  
+  public String getName(){
+    return "none";
+  }
+}
+/*
+    One saucer will appear at random times. At early waves
+    the saucer will be large and randomly shoot. At later waves
+
+    Saucers don't wrap around since they only appear briefly on the screen and move 
+    horizontally.
+
+    Saucers can also vanish at random times.
+*/
+public class Saucer extends Sprite{
+
+  public static final int SMALL_TYPE = 0;
+  public static final int LARGE_TYPE = 1;
+
+  private int type;
+  private Sprite target;
+  private PVector destination;
+  //private float bulletTimer;
+
+  /*
+  */
+  public Saucer(){
+    setType(LARGE_TYPE);
+    //setPosition(new PVector(0, 0));
+    position = new PVector(0, 0);
+    bounds = new BoundingCircle();
+    bounds.radius = 10;
+  }
+
+  /*
+  */
+  public void onCollision(Sprite s){
+  }
+
+  /*
+    Saucer.SMALL_TYPE or Saucer.LARGER_TYPE
+  */
+  public void setType(int t){
+    if(t == SMALL_TYPE || t == LARGE_TYPE){
+      type = t;
+    }
+  }
+
+  /*
+    The Sprite that the saucer will shoot at. Typically will be the users
+    ship.
+  */
+  public void setTarget(Sprite t){
+    target = t;
+  }
+
+  /*
+    accuracy must be normalized.
+  */
+  public void setAccuracy(float accuracy){
+
+  }
+
+  public void goTo(PVector d){
+    destination = d;
+  }
+
+  /*
+  */
+  public void destroy(){
+    super.destroy();
+    soundManager.playSound("mame_explode1");
+  }
+  
+  public void update(float deltaTime){
+    bounds.position = copyVector(position);
+
+    position.x += velocity.x * deltaTime;
+    position.y += velocity.y * deltaTime;
+  }
+
+  /*
+  */
+  public void draw(){
+    if(isDestroyed()){
+      return;
+    }
+
+    pushMatrix();
+
+    translate(position.x, position.y);
+
+    pushStyle();
+
+    if(type == SMALL_TYPE){
+      fill(255,0,0);
+      ellipse(position.x, position.y,3,3);
+    }
+    else{
+      fill(255,0,255);
+      ellipse(position.x, position.y,3,3);
+    }
+    
+    
+    //stroke(255);
+    //strokeWeight(3);
+    //fill(0);
+
+
+    
+    //line(10, 0, -10, 5);
+    //line(10, 0, -10, -5);
+    //line(-6, 4, -6, -4);
+
+    //if(debugOn){
+      //noFill();
+      stroke(255, 0, 0);
+      ellipse(0, 0, bounds.radius * 2, bounds.radius * 2);
+    //}
+
+    popStyle();
+    popMatrix();
+  }
+
+  /*
+  private final float ROT_SPEED = 5.0f;
+
+  private Timer thrustTimer;
+  private Timer shootingTimer;
+  private Timer teleportTimer;
+
+  public Ship(){
+    rotation = 0.0f;
+    
+    position = new PVector(width/2, height/2);
+    velocity = new PVector(0, 0);
+    acceleration = new PVector(0, 0);
+
+    thrustTimer = new Timer();
+    shootingTimer = new Timer();
+    teleportTimer = new Timer();
+    
+    bounds = new BoundingCircle();
+    bounds.radius = 20/2.0;
+    bounds.position = copyVector(position);
+  }
+  
+  public void destroy(){
+    super.destroy();
+    soundManager.playSound("mame_explode1");
+  }
+  
+    Move the ship to a random location without teleporting it into an asteroid.
+  
+  private void teleport(){
+
+    // player needs to wait at least 1 second before teleporting again
+    if(teleportTimer.getTotalTime() < 1.0f){
+      return;
+    }
+
+    teleportTimer.reset();
+
+    // Make sure not to teleport too close to an astroid, the player
+    // needs a chance to dodge astroids in their new position.
+    bounds.radius *= 3;
+
+    // Don't spawn the player too close to the edge of the game border, it
+    // might be too hard to see.
+    int border = 40;
+
+    do{
+      float randX = random(40, width - 40);
+      float randY = random(40, height - 40);
+
+      position = new PVector(randX, randY);
+      bounds.position = copyVector(position);
+
+    }while(checkoutAsteroidCollisionAgainstBounds(bounds) != -1);
+
+    bounds.radius /= 3;
+  }
+
+  
+    Prevent the player from firing too frequently.
+  
+  public void fire(){
+    if(isDestroyed()){
+      return;
+    }
+
+    if(shootingTimer.getTotalTime() > 0.25f){
+      shootingTimer.reset();
+      soundManager.playSound("mame_fire");
+      createBullet(copyVector(position), new PVector(cos(rotation) * BULLET_SPEED, sin(rotation) * BULLET_SPEED));
+    }
+  }
+  
+
+  
+  public void update(float deltaTime){
+    shootingTimer.tick();
+    teleportTimer.tick();
+
+    if(isDestroyed()){
+      return;
+    }
+
+    // Some versions have teleporting others have a shield
+    // TODO: add shield option
+    if(Keyboard.isKeyDown(KEY_DOWN) || Keyboard.isKeyDown(KEY_S)){
+      teleport();
+    }
+
+    if(Keyboard.isKeyDown(KEY_LEFT) || Keyboard.isKeyDown(KEY_A)){
+      rotation -= ROT_SPEED * deltaTime;
+    }
+    
+    if(Keyboard.isKeyDown(KEY_RIGHT) || Keyboard.isKeyDown(KEY_D)){
+      rotation += ROT_SPEED * deltaTime;
+    }
+
+    if(Keyboard.isKeyDown(KEY_UP) || Keyboard.isKeyDown(KEY_W)){
+      acceleration.x = cos(rotation) * 50.0f;
+      acceleration.y = sin(rotation) * 50.0f;
+
+      thrustTimer.tick();
+      if(thrustTimer.getTotalTime() > 0.1){
+        thrustTimer.reset();
+      }
+    }
+    else{
+      acceleration.x = 0;
+      acceleration.y = 0;
+    }
+    
+    velocity.x += acceleration.x * deltaTime;
+    velocity.y += acceleration.y * deltaTime;
+
+    velocity.x = (1.0 - DRAG * deltaTime) * velocity.x;
+    velocity.y = (1.0 - DRAG * deltaTime) * velocity.y;
+    
+    position.x += velocity.x * deltaTime;
+    position.y += velocity.y * deltaTime;
+    
+    updateBounds();
+    moveIfPastBounds();
+  }*/
+}
