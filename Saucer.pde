@@ -1,10 +1,124 @@
 /*
-    User controls the ship with their keyboard.
+    One saucer will appear at random times. At early waves
+    the saucer will be large and randomly shoot. At later waves
+
+    Saucers don't wrap around since they only appear briefly on the screen and move 
+    horizontally.
+
+    Saucers can also vanish at random times.
 */
-public class Ship extends Sprite{
+public class Saucer extends Sprite{
+
+  public static final int SMALL_TYPE = 0;
+  public static final int LARGE_TYPE = 1;
+
+  private int type;
+  private Sprite target;
+  private PVector destination;
+  //private float bulletTimer;
+
+  /*
+  */
+  public Saucer(){
+    setType(LARGE_TYPE);
+    //setPosition(new PVector(0, 0));
+    position = new PVector(0, 0);
+    bounds = new BoundingCircle();
+    bounds.radius = 10;
+  }
+
+  /*
+  */
+  public void onCollision(Sprite s){
+  }
+
+  /*
+    Saucer.SMALL_TYPE or Saucer.LARGER_TYPE
+  */
+  public void setType(int t){
+    if(t == SMALL_TYPE || t == LARGE_TYPE){
+      type = t;
+    }
+  }
+
+  /*
+    The Sprite that the saucer will shoot at. Typically will be the users
+    ship.
+  */
+  public void setTarget(Sprite t){
+    target = t;
+  }
+
+  /*
+    accuracy must be normalized.
+  */
+  public void setAccuracy(float accuracy){
+
+  }
+
+  public void goTo(PVector d){
+    destination = d;
+  }
+
+  /*
+  */
+  public void destroy(){
+    super.destroy();
+    soundManager.playSound("mame_explode1");
+  }
   
+  public void update(float deltaTime){
+    bounds.position = copyVector(position);
+
+    position.x += velocity.x * deltaTime;
+    position.y += velocity.y * deltaTime;
+  }
+
+  /*
+  */
+  public void draw(){
+    if(isDestroyed()){
+      return;
+    }
+
+    pushMatrix();
+
+    translate(position.x, position.y);
+
+    pushStyle();
+
+    if(type == SMALL_TYPE){
+      fill(255,0,0);
+      ellipse(position.x, position.y,3,3);
+    }
+    else{
+      fill(255,0,255);
+      ellipse(position.x, position.y,3,3);
+    }
+    
+    
+    //stroke(255);
+    //strokeWeight(3);
+    //fill(0);
+
+
+    
+    //line(10, 0, -10, 5);
+    //line(10, 0, -10, -5);
+    //line(-6, 4, -6, -4);
+
+    //if(debugOn){
+      //noFill();
+      stroke(255, 0, 0);
+      ellipse(0, 0, bounds.radius * 2, bounds.radius * 2);
+    //}
+
+    popStyle();
+    popMatrix();
+  }
+
+  /*
   private final float ROT_SPEED = 5.0f;
-  private final float DRAG = 0.5f;
 
   private Timer thrustTimer;
   private Timer shootingTimer;
@@ -24,18 +138,15 @@ public class Ship extends Sprite{
     bounds = new BoundingCircle();
     bounds.radius = 20/2.0;
     bounds.position = copyVector(position);
-
-    name = "ship";
   }
   
   public void destroy(){
     super.destroy();
     soundManager.playSound("mame_explode1");
   }
-
-  /*
+  
     Move the ship to a random location without teleporting it into an asteroid.
-  */
+  
   private void teleport(){
 
     // player needs to wait at least 1 second before teleporting again
@@ -53,34 +164,21 @@ public class Ship extends Sprite{
     // might be too hard to see.
     int border = 40;
 
-   // do{
+    do{
       float randX = random(40, width - 40);
       float randY = random(40, height - 40);
 
       position = new PVector(randX, randY);
       bounds.position = copyVector(position);
 
-      //AS!!
-   // }while(checkoutAsteroidCollisionAgainstBounds(bounds) != -1);*/ //AS!!!
+    }while(checkoutAsteroidCollisionAgainstBounds(bounds) != -1);
 
     bounds.radius /= 3;
   }
 
-  /*
-    self - can't happen
-    asteroid - destroy
-    ufo - destroy
-    self bullet - nothing
-  */
-  public void onCollision(Sprite s){
-    if(s.getName() == "asteroid"){
-      destroy();
-    }
-  }
-
-  /*
+  
     Prevent the player from firing too frequently.
-  */
+  
   public void fire(){
     if(isDestroyed()){
       return;
@@ -89,71 +187,18 @@ public class Ship extends Sprite{
     if(shootingTimer.getTotalTime() > 0.25f){
       shootingTimer.reset();
       soundManager.playSound("mame_fire");
-
-      Bullet b = new Bullet();
-      b.position = copyVector(position);
-      b.velocity = new PVector(cos(rotation) * BULLET_SPEED, sin(rotation) * BULLET_SPEED);
-      scene.addSprite(b);
+      createBullet(copyVector(position), new PVector(cos(rotation) * BULLET_SPEED, sin(rotation) * BULLET_SPEED));
     }
   }
   
-  public void draw(){
-    if(isDestroyed() || visible == false){
-      return;
-    }
 
-    pushMatrix();
-
-    translate(position.x, position.y);
-    rotate(rotation);
-    
-    pushStyle();
-    stroke(255);
-    strokeWeight(3);
-    fill(0);
-    
-    line(10, 0, -10, 5);
-    line(10, 0, -10, -5);
-    line(-6, 4, -6, -4);
-
-    // We need to show the thruster if the user is pressing down
-    // for a brief period, then hide it to make it look animated.
-    if(thrustTimer.getTotalTime() < 0.05 && Keyboard.isKeyDown(KEY_UP)){
-      // thruster
-      line(-6, 3, -12, 0);
-      line(-6, -3, -12, 0);
-    }
-
-    //line(-5, -5, -10, 5 );
-    //rect(-10,-10, 10, 10);
-    //beginShape();
-    //  vertex(-8, 8);
-    //  vertex(-8, -8);
-    //  vertex(8,  0);
-    //endShape(CLOSE);
-    
-    if(debugOn){
-      noFill();
-      stroke(255, 0, 0);
-      ellipse(0, 0, bounds.radius * 2, bounds.radius * 2);
-    }
-
-    popStyle();
-    popMatrix();
-  }
   
-  /*
-  */
   public void update(float deltaTime){
-    if(isDestroyed()){
-      return;
-    }
-
     shootingTimer.tick();
     teleportTimer.tick();
 
-    if(Keyboard.isKeyDown(KEY_SPACE)){
-      fire();
+    if(isDestroyed()){
+      return;
     }
 
     // Some versions have teleporting others have a shield
@@ -195,5 +240,5 @@ public class Ship extends Sprite{
     
     updateBounds();
     moveIfPastBounds();
-  }
+  }*/
 }

@@ -15,8 +15,19 @@ public class Bullet extends Sprite{
     
     bounds = new BoundingCircle();
     bounds.radius = 3;
+    name = "bullet";
   }
   
+  public void onCollision(Sprite s){
+    String other = s.getName();
+
+    if(other.equals("ship") || other.equals("bullet")){
+      return;
+    }
+
+    destroy();
+  }
+
   public void draw(){
     if(isDestroyed()){
       return;
