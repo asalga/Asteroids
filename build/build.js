@@ -875,6 +875,11 @@ public class Asteroid extends Sprite{
   /*
   */
   public void onCollision(Sprite s){  
+
+    if(s.getName().equals("bullet")){
+      score += getPoints();
+    }
+
     if( s.getName().equals("bullet") ||
         //s.getName().equals("ship") ||
         s.getName().equals("saucer")){
