@@ -14,7 +14,7 @@ public class Scene{
   // the area is clear to spawn a user in the center of the screen.
   private boolean waitingToRespawn = false;
   
-  private final int NUM_ASTEROIDS = 3;
+  private int numAsteroidsInLevel = 3;
   private int numAsteroidsAlive;
 
   private boolean runningCollisionTest = false;
@@ -45,6 +45,7 @@ public class Scene{
   */
   private void loadNextLevel(){
     level++;
+    numAsteroidsInLevel++;
     generateAsteroids();
     respawn();
   }
@@ -225,7 +226,7 @@ public class Scene{
   /*
   */
   private void generateAsteroids(){
-    for(int i = 0; i < NUM_ASTEROIDS; i++){
+    for(int i = 0; i < numAsteroidsInLevel; i++){
       Asteroid a = new Asteroid();
     
       // Place asteroids around the ship so they don't
