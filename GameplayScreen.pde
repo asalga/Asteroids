@@ -60,7 +60,7 @@ public class GameplayScreen extends IScreen{
     currentScore.pixelsFromRight(0);
     scorePanel.addWidget(currentScore);
 
-    // Images!
+    // TODO: replace this with using lines()
     shipLifeImage = loadImage("data/images/ship-life.png");
   }
   
@@ -71,7 +71,7 @@ public class GameplayScreen extends IScreen{
     
     scene.draw();
 
-    // Based on screenshots, the score starts off with two zeros
+    // Based on classic screenshots, the score starts off with two zeros
     currentScore.setText(prependStringWithString("" + score, "0", 2));
  
     // Labels
@@ -109,37 +109,8 @@ public class GameplayScreen extends IScreen{
     if(gameOver && Keyboard.isKeyDown(KEY_ENTER)){
       scene = new Scene();
     }
-
-   /*     
-    // Once there are no astroids
-    // TODO: add check for bullets from saucer
-    if(waitingToRespawn){
-      BoundingCircle b = new BoundingCircle();
-      b.position = new PVector(width/2, height/2);
-      b.radius = 30;
-*/
-     // if(checkoutAsteroidCollisionAgainstBounds(b) == -1){
-      //  waitingToRespawn = false;
-       // respawn();
-      //} //AS!!!
-    //}
-
-    //screens.curr.update();
   }
 
-
- /* void updateSpriteList(ArrayList<Sprite> spriteList, float deltaTime){
-    for(int i = 0; i < spriteList.size(); i++){
-      spriteList.get(i).update(deltaTime);
-    }
-  }
-
-  void drawSpriteList(ArrayList<Sprite> spriteList){
-    for(int i = 0; i < spriteList.size(); i++){
-      spriteList.get(i).draw();
-    }
-  }
-  */
   public String getName(){
     return "gameplayscreen";
   }

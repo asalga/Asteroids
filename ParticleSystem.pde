@@ -122,6 +122,10 @@ public class ParticleSystem extends Sprite{
       cParticle particle = (cParticle)particles.get(i);
       particle.update(deltaTimeInSeconds);
     }
+
+    if(isDead()){
+      destroy();
+    }
   }
   
   /*
