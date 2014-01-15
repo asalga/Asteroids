@@ -857,7 +857,7 @@ public class Asteroid extends Sprite{
 
     // Do this only after the small asteroids have been added to make sure the asteroid
     // count never goes to zero and confuses the game state.
-    scene.removeSprite(this);
+    //scene.removeSprite(this);
   }
   
   /*
@@ -1675,6 +1675,10 @@ public class ParticleSystem extends Sprite{
       cParticle particle = (cParticle)particles.get(i);
       particle.update(deltaTimeInSeconds);
     }
+
+    if(isDead()){
+      destroy();
+    }
   }
   
   /*
@@ -1976,6 +1980,7 @@ public class Scene{
     Update & Test Collisions
   */
   public void update(float deltaTime){
+
     for(int i = 0; i < sprites.size(); i++){
       sprites.get(i).update(deltaTime);
     }
@@ -2030,9 +2035,16 @@ public class Scene{
         if(sprites.get(i).isDestroyed() == false){
           newList.add(sprites.get(i));
         }
+        else if(sprites.get(i).isDestroyed() && sprites.get(i).getName().equals("asteroid")){
+          numAsteroidsAlive--;
+        }
       }
-
       sprites = newList;
+    }
+
+    // 
+    if(numAsteroidsAlive == 0){
+      loadNextLevel();
     }
   }
 
@@ -2057,6 +2069,7 @@ public class Scene{
   private void testCollisions(){
 
     int j;
+    int checks = 0;
 
     for(int i = 0; i < sprites.size(); i++){
       for(j = i + 1; j < sprites.size(); j++){
@@ -2073,6 +2086,7 @@ public class Scene{
         BoundingCircle b1 = sprites.get(i).getBoundingCircle();
         BoundingCircle b2 = sprites.get(j).getBoundingCircle();
 
+        checks++;
         if(testCircleCollision(b1, b2)){
           temp1.onCollision(temp2);
           temp2.onCollision(temp1);
@@ -2082,6 +2096,7 @@ public class Scene{
         }
       }
     }
+    //println("checks:" + checks);
   }
 
   /*
@@ -2114,10 +2129,9 @@ public class Scene{
       }
     }
 
-    //
-    if(numAsteroidsAlive == 0){
-      loadNextLevel();
-    }
+    //if(numAsteroidsAlive == 0){
+    //  loadNextLevel();
+    //}
   }
 
   /*
@@ -2266,7 +2280,7 @@ public class GameplayScreen extends IScreen{
     currentScore.pixelsFromRight(0);
     scorePanel.addWidget(currentScore);
 
-    // Images!
+    // TODO: replace this with using lines()
     shipLifeImage = loadImage("data/images/ship-life.png");
   }
   
@@ -2277,7 +2291,7 @@ public class GameplayScreen extends IScreen{
     
     scene.draw();
 
-    // Based on screenshots, the score starts off with two zeros
+    // Based on classic screenshots, the score starts off with two zeros
     currentScore.setText(prependStringWithString("" + score, "0", 2));
  
     // Labels
@@ -2315,37 +2329,8 @@ public class GameplayScreen extends IScreen{
     if(gameOver && Keyboard.isKeyDown(KEY_ENTER)){
       scene = new Scene();
     }
-
-   /*     
-    // Once there are no astroids
-    // TODO: add check for bullets from saucer
-    if(waitingToRespawn){
-      BoundingCircle b = new BoundingCircle();
-      b.position = new PVector(width/2, height/2);
-      b.radius = 30;
-*/
-     // if(checkoutAsteroidCollisionAgainstBounds(b) == -1){
-      //  waitingToRespawn = false;
-       // respawn();
-      //} //AS!!!
-    //}
-
-    //screens.curr.update();
   }
 
-
- /* void updateSpriteList(ArrayList<Sprite> spriteList, float deltaTime){
-    for(int i = 0; i < spriteList.size(); i++){
-      spriteList.get(i).update(deltaTime);
-    }
-  }
-
-  void drawSpriteList(ArrayList<Sprite> spriteList){
-    for(int i = 0; i < spriteList.size(); i++){
-      spriteList.get(i).draw();
-    }
-  }
-  */
   public String getName(){
     return "gameplayscreen";
   }
