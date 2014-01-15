@@ -104,7 +104,7 @@ public class Asteroid extends Sprite{
 
     // Do this only after the small asteroids have been added to make sure the asteroid
     // count never goes to zero and confuses the game state.
-    scene.removeSprite(this);
+    //scene.removeSprite(this);
   }
   
   /*

@@ -67,6 +67,7 @@ public class Scene{
     Update & Test Collisions
   */
   public void update(float deltaTime){
+
     for(int i = 0; i < sprites.size(); i++){
       sprites.get(i).update(deltaTime);
     }
@@ -121,9 +122,16 @@ public class Scene{
         if(sprites.get(i).isDestroyed() == false){
           newList.add(sprites.get(i));
         }
+        else if(sprites.get(i).isDestroyed() && sprites.get(i).getName().equals("asteroid")){
+          numAsteroidsAlive--;
+        }
       }
-
       sprites = newList;
+    }
+
+    // 
+    if(numAsteroidsAlive == 0){
+      loadNextLevel();
     }
   }
 
@@ -148,6 +156,7 @@ public class Scene{
   private void testCollisions(){
 
     int j;
+    int checks = 0;
 
     for(int i = 0; i < sprites.size(); i++){
       for(j = i + 1; j < sprites.size(); j++){
@@ -164,6 +173,7 @@ public class Scene{
         BoundingCircle b1 = sprites.get(i).getBoundingCircle();
         BoundingCircle b2 = sprites.get(j).getBoundingCircle();
 
+        checks++;
         if(testCircleCollision(b1, b2)){
           temp1.onCollision(temp2);
           temp2.onCollision(temp1);
@@ -173,6 +183,7 @@ public class Scene{
         }
       }
     }
+    //println("checks:" + checks);
   }
 
   /*
@@ -205,10 +216,9 @@ public class Scene{
       }
     }
 
-    //
-    if(numAsteroidsAlive == 0){
-      loadNextLevel();
-    }
+    //if(numAsteroidsAlive == 0){
+    //  loadNextLevel();
+    //}
   }
 
   /*
