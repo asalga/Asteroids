@@ -1923,7 +1923,7 @@ public class Scene{
   // the area is clear to spawn a user in the center of the screen.
   private boolean waitingToRespawn = false;
   
-  private final int NUM_ASTEROIDS = 3;
+  private int numAsteroidsInLevel = 3;
   private int numAsteroidsAlive;
 
   private boolean runningCollisionTest = false;
@@ -1954,6 +1954,7 @@ public class Scene{
   */
   private void loadNextLevel(){
     level++;
+    numAsteroidsInLevel++;
     generateAsteroids();
     respawn();
   }
@@ -2134,7 +2135,7 @@ public class Scene{
   /*
   */
   private void generateAsteroids(){
-    for(int i = 0; i < NUM_ASTEROIDS; i++){
+    for(int i = 0; i < numAsteroidsInLevel; i++){
       Asteroid a = new Asteroid();
     
       // Place asteroids around the ship so they don't
@@ -2350,24 +2351,27 @@ public class GameplayScreen extends IScreen{
   }
 }
 /*
-    First thing that is displayed to the user are the high scores
-
+    First thing that is displayed to the user are the high scores.
 */
 public class ScreenHighScores extends IScreen{
  
-  RetroFont largeFont;
-  RetroFont smallFont;
+  private RetroFont largeFont;
+  private RetroFont smallFont;
 
-  RetroLabel highScoresLabel;
-  
-  RetroLabel []leaderboardNumbers;
-  RetroLabel []leaderboardScores;
-  RetroLabel []leaderboardNames;
+  private RetroLabel []leaderboardNumbers;
+  private RetroLabel []leaderboardScores;
+  private RetroLabel []leaderboardNames;
+  private RetroLabel pressEnterBlink;
+  private RetroLabel andorIncLabel;
+  private RetroLabel highScoresLabel;
+
+  private Timer pressEnterBlinkTimer;
+  private boolean showingPressEnterLabel;
+
+  private final int NUM_SCORES = 5;
 
   // Allows us to right-align scores
-  RetroPanel scorePanel;
-
-  RetroLabel andorIncLabel;
+  private RetroPanel scorePanel;
 
   public ScreenHighScores(){
     largeFont = new RetroFont("data/fonts/asteroids-large-font.png", 12, 14, 2);
@@ -2382,21 +2386,29 @@ public class ScreenHighScores extends IScreen{
     highScoresLabel.setHorizontalSpacing(2);
     highScoresLabel.pixelsFromTop(50);
 
-    leaderboardNumbers = new RetroLabel[5];
-    leaderboardNames = new RetroLabel[5];
-    leaderboardScores = new RetroLabel[5];
+    pressEnterBlink = new RetroLabel(largeFont);
+    pressEnterBlink.setText("PRESS ENTER");
+    pressEnterBlink.setHorizontalSpacing(2);
+    pressEnterBlink.pixelsFromTop(100);
 
-    for(int i = 0; i < 5; i++){
+    pressEnterBlinkTimer = new Timer();
+    showingPressEnterLabel = true;
+
+    leaderboardNumbers = new RetroLabel[NUM_SCORES];
+    leaderboardNames = new RetroLabel[NUM_SCORES];
+    leaderboardScores = new RetroLabel[NUM_SCORES];
+
+    for(int i = 0; i < NUM_SCORES; i++){
       leaderboardNumbers[i] = new RetroLabel(largeFont);
       leaderboardNumbers[i].setText("0" + (i+1) + ".");
-      leaderboardNumbers[i].pixelsFromTopLeft(100 + (i * 16), 80);
+      leaderboardNumbers[i].pixelsFromTopLeft(150 + (i * 16), 80);
 
       leaderboardScores[i] = new RetroLabel(largeFont);
-      leaderboardScores[i].pixelsFromTopRight(100 + (i * 16), 10);
+      leaderboardScores[i].pixelsFromTopRight(150 + (i * 16), 10);
       scorePanel.addWidget(leaderboardScores[i]);
 
       leaderboardNames[i] = new RetroLabel(largeFont);
-      leaderboardNames[i].pixelsFromTopLeft(100 + (i * 16), 280);
+      leaderboardNames[i].pixelsFromTopLeft(150 + (i * 16), 280);
     }
 
 
@@ -2415,7 +2427,6 @@ public class ScreenHighScores extends IScreen{
     leaderboardScores[4].setText("27200");
     leaderboardNames[4].setText("CSS");
 
-
     andorIncLabel = new RetroLabel(smallFont);
     andorIncLabel.setText("2014 ANDOR INC");
     andorIncLabel.setVerticalSpacing(0);
@@ -2425,7 +2436,7 @@ public class ScreenHighScores extends IScreen{
 
   public void OnTransitionTo(){}
 
-  /**
+  /*
   */
   public void draw(){
     background(0);
@@ -2434,7 +2445,11 @@ public class ScreenHighScores extends IScreen{
     
     scorePanel.draw();
 
-    for(int i = 0; i < 5; i++){
+    if(showingPressEnterLabel){
+      pressEnterBlink.draw();
+    }
+
+    for(int i = 0; i < NUM_SCORES; i++){
       leaderboardNumbers[i].draw();
       leaderboardNames[i].draw();
     }
@@ -2447,6 +2462,12 @@ public class ScreenHighScores extends IScreen{
   }
 
   public void update(){
+    pressEnterBlinkTimer.tick();
+
+    if(pressEnterBlinkTimer.getTotalTime() > 0.5){
+      pressEnterBlinkTimer.reset();
+      showingPressEnterLabel = !showingPressEnterLabel;
+    }
   }
   
   public String getName(){
