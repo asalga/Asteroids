@@ -1,5 +1,5 @@
 /*
-  @pjs globalKeyEvents="true"; preload="data/images/asteroid.png, data/images/ship-life.png, data/fonts/asteroids-large-font.png, data/fonts/small-font.png";
+  @pjs globalKeyEvents="true"; preload="data/images/ship-life.png, data/fonts/asteroids-large-font.png, data/fonts/small-font.png";
 */
  
  /*
