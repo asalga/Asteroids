@@ -5,8 +5,6 @@
  /*
     - Remove bullet velocity reference from Ship
     - Add thrust audio
-    - Fix scanline perf
-    - Fix scanlines on Safari
     - Fix audio on Safari
  */
 
@@ -21,11 +19,11 @@ final float BULLET_SPEED = 200.0f;
 // Original game has score roll over
 final boolean ALLOW_99_990_BUG = false;
 
-final boolean GOD_MODE = false;
+boolean godMode = false;
 
 Starfield starfield;
 
-boolean debugOn = false;
+boolean debugOn = true;
 
 boolean gameOver = false;
 int level = 1;
@@ -35,6 +33,7 @@ int numLives = 3;
 ScreenSet screens = new ScreenSet();
 Scene scene;
 SoundManager soundManager;
+PImage scanLinesOverlay;
 
 /*
 */
@@ -46,7 +45,7 @@ void setup() {
 
   // get a nice pixelated look
   noSmooth();
-      
+  strokeCap(PROJECT);
   // 
   soundManager = new SoundManager(this);
   soundManager.addSound("mame_fire");
@@ -59,33 +58,59 @@ void setup() {
 
   // Toggle keys for showing Bounds and Mute.
   Keyboard.lockKeys(new int[]{KEY_B, KEY_M});
+
+
+  // Experimenting with pGraphics
+  /*scanLines = createGraphics(width, height);
+  scanLines.beginDraw();
+  scanLines.stroke(16, 255);
+  scanLines.noSmooth();
+  scanLines.strokeWeight(3);
+  for(int i = 0; i < height; i+=5){
+    scanLines.line(0,i,width, i);
+  }
+  scanLines.endDraw();*/
+
+  // Avoid several draw calls to line by just making one image call
+  scanLinesOverlay = new createImage(width, height, ARGB);
+  scanLinesOverlay.loadPixels();
+
+  // Setup scanline overlay
+  boolean drawingLine = false;
+  for(int i = 0; i < scanLinesOverlay.pixels.length; i++){
+    if (i % width == 0){
+      drawingLine = !drawingLine;
+    }
+    if(drawingLine){
+      scanLinesOverlay.pixels[i] = color(16, 255);
+    }
+  }
+  scanLinesOverlay.updatePixels();
 }
 
 /*
 */
 void draw() {
   update();
+
   screens.curr.draw();
-  scanLinePostProcess();
+  image(scanLinesOverlay, 0, 0);
+
+  if(debugOn){
+    text("FPS:"+ floor(frameRate), 30, 30);
+  }
 }
 
 /*
-  Add scanlines for a retro look
+  Deprecated, replaced with a single call to image()
 */
 void scanLinePostProcess(){
   pushStyle();
-  
   stroke(16, 128);
   strokeWeight(1);
-  
   for(int i = 0; i < height; i += 2 ){
     line(0, i, width, i);
   }
-  
-  for(int i = 0; i < width; i += 2 ){
-   // line(i, 0, i, height);
-  }
-
   popStyle();
 }
 
@@ -108,7 +133,7 @@ void increaseScore(int amt){
 /*
 */
 void endGame(){
-  if(GOD_MODE == true){
+  if(godMode == true){
     return;
   }
 
@@ -857,7 +882,7 @@ public class Asteroid extends Sprite{
 
     // Do this only after the small asteroids have been added to make sure the asteroid
     // count never goes to zero and confuses the game state.
-    scene.removeSprite(this);
+    //scene.removeSprite(this);
   }
   
   /*
@@ -875,6 +900,11 @@ public class Asteroid extends Sprite{
   /*
   */
   public void onCollision(Sprite s){  
+
+    if(s.getName().equals("bullet")){
+      score += getPoints();
+    }
+
     if( s.getName().equals("bullet") ||
         //s.getName().equals("ship") ||
         s.getName().equals("saucer")){
@@ -1109,6 +1139,7 @@ public class Ship extends Sprite{
       return;
     }
 
+    // TODO: fix
     if(shootingTimer.getTotalTime() > 0.25f){
       shootingTimer.reset();
       soundManager.playSound("mame_fire");
@@ -1364,8 +1395,10 @@ public abstract class Sprite{
     bounds.position = copyVector(position);
   }
   
+  // Too much garbage generated with clone
+  // Just return a reference
   public BoundingCircle getBoundingCircle(){
-    return bounds.clone();
+    return bounds;
   }
 
   public abstract void update(float deltaTime);
@@ -1675,6 +1708,10 @@ public class ParticleSystem extends Sprite{
       cParticle particle = (cParticle)particles.get(i);
       particle.update(deltaTimeInSeconds);
     }
+
+    if(isDead()){
+      destroy();
+    }
   }
   
   /*
@@ -1923,7 +1960,7 @@ public class Scene{
   // the area is clear to spawn a user in the center of the screen.
   private boolean waitingToRespawn = false;
   
-  private final int NUM_ASTEROIDS = 3;
+  private int numAsteroidsInLevel = 3;
   private int numAsteroidsAlive;
 
   private boolean runningCollisionTest = false;
@@ -1954,6 +1991,7 @@ public class Scene{
   */
   private void loadNextLevel(){
     level++;
+    numAsteroidsInLevel++;
     generateAsteroids();
     respawn();
   }
@@ -1975,6 +2013,7 @@ public class Scene{
     Update & Test Collisions
   */
   public void update(float deltaTime){
+
     for(int i = 0; i < sprites.size(); i++){
       sprites.get(i).update(deltaTime);
     }
@@ -2029,9 +2068,16 @@ public class Scene{
         if(sprites.get(i).isDestroyed() == false){
           newList.add(sprites.get(i));
         }
+        else if(sprites.get(i).isDestroyed() && sprites.get(i).getName().equals("asteroid")){
+          numAsteroidsAlive--;
+        }
       }
-
       sprites = newList;
+    }
+
+    // 
+    if(numAsteroidsAlive == 0){
+      loadNextLevel();
     }
   }
 
@@ -2056,6 +2102,7 @@ public class Scene{
   private void testCollisions(){
 
     int j;
+    int checks = 0;
 
     for(int i = 0; i < sprites.size(); i++){
       for(j = i + 1; j < sprites.size(); j++){
@@ -2072,6 +2119,7 @@ public class Scene{
         BoundingCircle b1 = sprites.get(i).getBoundingCircle();
         BoundingCircle b2 = sprites.get(j).getBoundingCircle();
 
+        checks++;
         if(testCircleCollision(b1, b2)){
           temp1.onCollision(temp2);
           temp2.onCollision(temp1);
@@ -2113,10 +2161,9 @@ public class Scene{
       }
     }
 
-    //
-    if(numAsteroidsAlive == 0){
-      loadNextLevel();
-    }
+    //if(numAsteroidsAlive == 0){
+    //  loadNextLevel();
+    //}
   }
 
   /*
@@ -2134,7 +2181,7 @@ public class Scene{
   /*
   */
   private void generateAsteroids(){
-    for(int i = 0; i < NUM_ASTEROIDS; i++){
+    for(int i = 0; i < numAsteroidsInLevel; i++){
       Asteroid a = new Asteroid();
     
       // Place asteroids around the ship so they don't
@@ -2265,7 +2312,7 @@ public class GameplayScreen extends IScreen{
     currentScore.pixelsFromRight(0);
     scorePanel.addWidget(currentScore);
 
-    // Images!
+    // TODO: replace this with using lines()
     shipLifeImage = loadImage("data/images/ship-life.png");
   }
   
@@ -2276,7 +2323,7 @@ public class GameplayScreen extends IScreen{
     
     scene.draw();
 
-    // Based on screenshots, the score starts off with two zeros
+    // Based on classic screenshots, the score starts off with two zeros
     currentScore.setText(prependStringWithString("" + score, "0", 2));
  
     // Labels
@@ -2314,60 +2361,34 @@ public class GameplayScreen extends IScreen{
     if(gameOver && Keyboard.isKeyDown(KEY_ENTER)){
       scene = new Scene();
     }
-
-   /*     
-    // Once there are no astroids
-    // TODO: add check for bullets from saucer
-    if(waitingToRespawn){
-      BoundingCircle b = new BoundingCircle();
-      b.position = new PVector(width/2, height/2);
-      b.radius = 30;
-*/
-     // if(checkoutAsteroidCollisionAgainstBounds(b) == -1){
-      //  waitingToRespawn = false;
-       // respawn();
-      //} //AS!!!
-    //}
-
-    //screens.curr.update();
   }
 
-
- /* void updateSpriteList(ArrayList<Sprite> spriteList, float deltaTime){
-    for(int i = 0; i < spriteList.size(); i++){
-      spriteList.get(i).update(deltaTime);
-    }
-  }
-
-  void drawSpriteList(ArrayList<Sprite> spriteList){
-    for(int i = 0; i < spriteList.size(); i++){
-      spriteList.get(i).draw();
-    }
-  }
-  */
   public String getName(){
     return "gameplayscreen";
   }
 }
 /*
-    First thing that is displayed to the user are the high scores
-
+    First thing that is displayed to the user are the high scores.
 */
 public class ScreenHighScores extends IScreen{
  
-  RetroFont largeFont;
-  RetroFont smallFont;
+  private RetroFont largeFont;
+  private RetroFont smallFont;
 
-  RetroLabel highScoresLabel;
-  
-  RetroLabel []leaderboardNumbers;
-  RetroLabel []leaderboardScores;
-  RetroLabel []leaderboardNames;
+  private RetroLabel []leaderboardNumbers;
+  private RetroLabel []leaderboardScores;
+  private RetroLabel []leaderboardNames;
+  private RetroLabel pressEnterBlink;
+  private RetroLabel andorIncLabel;
+  private RetroLabel highScoresLabel;
+
+  private Timer pressEnterBlinkTimer;
+  private boolean showingPressEnterLabel;
+
+  private final int NUM_SCORES = 5;
 
   // Allows us to right-align scores
-  RetroPanel scorePanel;
-
-  RetroLabel andorIncLabel;
+  private RetroPanel scorePanel;
 
   public ScreenHighScores(){
     largeFont = new RetroFont("data/fonts/asteroids-large-font.png", 12, 14, 2);
@@ -2382,21 +2403,29 @@ public class ScreenHighScores extends IScreen{
     highScoresLabel.setHorizontalSpacing(2);
     highScoresLabel.pixelsFromTop(50);
 
-    leaderboardNumbers = new RetroLabel[5];
-    leaderboardNames = new RetroLabel[5];
-    leaderboardScores = new RetroLabel[5];
+    pressEnterBlink = new RetroLabel(largeFont);
+    pressEnterBlink.setText("PRESS ENTER");
+    pressEnterBlink.setHorizontalSpacing(2);
+    pressEnterBlink.pixelsFromTop(100);
 
-    for(int i = 0; i < 5; i++){
+    pressEnterBlinkTimer = new Timer();
+    showingPressEnterLabel = true;
+
+    leaderboardNumbers = new RetroLabel[NUM_SCORES];
+    leaderboardNames = new RetroLabel[NUM_SCORES];
+    leaderboardScores = new RetroLabel[NUM_SCORES];
+
+    for(int i = 0; i < NUM_SCORES; i++){
       leaderboardNumbers[i] = new RetroLabel(largeFont);
       leaderboardNumbers[i].setText("0" + (i+1) + ".");
-      leaderboardNumbers[i].pixelsFromTopLeft(100 + (i * 16), 80);
+      leaderboardNumbers[i].pixelsFromTopLeft(150 + (i * 16), 80);
 
       leaderboardScores[i] = new RetroLabel(largeFont);
-      leaderboardScores[i].pixelsFromTopRight(100 + (i * 16), 10);
+      leaderboardScores[i].pixelsFromTopRight(150 + (i * 16), 10);
       scorePanel.addWidget(leaderboardScores[i]);
 
       leaderboardNames[i] = new RetroLabel(largeFont);
-      leaderboardNames[i].pixelsFromTopLeft(100 + (i * 16), 280);
+      leaderboardNames[i].pixelsFromTopLeft(150 + (i * 16), 280);
     }
 
 
@@ -2415,7 +2444,6 @@ public class ScreenHighScores extends IScreen{
     leaderboardScores[4].setText("27200");
     leaderboardNames[4].setText("CSS");
 
-
     andorIncLabel = new RetroLabel(smallFont);
     andorIncLabel.setText("2014 ANDOR INC");
     andorIncLabel.setVerticalSpacing(0);
@@ -2425,7 +2453,7 @@ public class ScreenHighScores extends IScreen{
 
   public void OnTransitionTo(){}
 
-  /**
+  /*
   */
   public void draw(){
     background(0);
@@ -2434,7 +2462,11 @@ public class ScreenHighScores extends IScreen{
     
     scorePanel.draw();
 
-    for(int i = 0; i < 5; i++){
+    if(showingPressEnterLabel){
+      pressEnterBlink.draw();
+    }
+
+    for(int i = 0; i < NUM_SCORES; i++){
       leaderboardNumbers[i].draw();
       leaderboardNames[i].draw();
     }
@@ -2447,6 +2479,12 @@ public class ScreenHighScores extends IScreen{
   }
 
   public void update(){
+    pressEnterBlinkTimer.tick();
+
+    if(pressEnterBlinkTimer.getTotalTime() > 0.5){
+      pressEnterBlinkTimer.reset();
+      showingPressEnterLabel = !showingPressEnterLabel;
+    }
   }
   
   public String getName(){
