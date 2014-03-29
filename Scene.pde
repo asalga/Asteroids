@@ -183,7 +183,6 @@ public class Scene{
         }
       }
     }
-    //println("checks:" + checks);
   }
 
   /*
