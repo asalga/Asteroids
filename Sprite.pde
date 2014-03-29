@@ -67,8 +67,10 @@ public abstract class Sprite{
     bounds.position = copyVector(position);
   }
   
+  // Too much garbage generated with clone
+  // Just return a reference
   public BoundingCircle getBoundingCircle(){
-    return bounds.clone();
+    return bounds;
   }
 
   public abstract void update(float deltaTime);

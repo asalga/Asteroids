@@ -86,6 +86,7 @@ public class Ship extends Sprite{
       return;
     }
 
+    // TODO: fix
     if(shootingTimer.getTotalTime() > 0.25f){
       shootingTimer.reset();
       soundManager.playSound("mame_fire");
